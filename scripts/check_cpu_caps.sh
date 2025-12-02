@@ -1,13 +1,19 @@
 #!/bin/bash
 
-# This script starts an ephemeral container in every virt-handler pod within the
-# ${KUBEVIRT_NAMESPACE} namespace. It requires kubeconfig to be included in $PATH,
-# with permissions to run `kubectl [debug|cp|exec]` targeting the
-# ${KUBEVIRT_NAMESPACE} namespace.
+# This script collects the virsh capabilities files from all virt-handler pods in
+# the ${KUBEVIRT_NAMESPACE} namespace. It also starts an ephemeral container in
+# each virt-handler pod to run a custom version of the virt-handler image (defined
+# by the ${VIRT_HANDLER_IMAGE} variable), to collect the same set of virsh
+# capabilities files.
 #
-# The container is started with the custom virt-handler image defined by the
-# ${VIRT_HANDLER_IMAGE} variable. Its command executes the built-in
-# node-labeller.sh script, writes the output XML files to the container's
+# We can compare the collected virsh capabilities files to identify differences
+# betweeen different versions of virt-handler.
+#
+# This script requires kubeconfig to be included in $PATH, with permissions to
+# run `kubectl [debug|cp|exec]` targeting the ${KUBEVIRT_NAMESPACE} namespace.
+#
+# When launched, the ehpemeral container executes the built-in node-labeller.sh
+# script, writes the output XML files to the container's
 # /var/lib/kubevirt-node-labeller, and copies the output from the container to
 # your shell.
 
