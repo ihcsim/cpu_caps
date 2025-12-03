@@ -35,12 +35,7 @@ function cpu_caps() {
   echo "➡️ version: ${cluster_image}"
 
   for virt_handler in "${virt_handlers[@]}"; do
-    local pod_name=$(echo "${virt_handler}" | cut -d',' -f1)
-    local node_name=$(echo "${virt_handler}" | cut -d',' -f2)
-    echo "  ☸ ${KUBEVIRT_NAMESPACE}/${pod_name}"
-
-    local image_tag=$(echo "${cluster_image}" | cut -d":" -f2)
-    kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c virt-handler "${pod_name}":/var/lib/kubevirt-node-labeller/ ./out-"${now}/${node_name}/${image_tag}"
+    run_debugger "${virt_handler}" "${cluster_image}"
   done
 }
 
@@ -52,31 +47,37 @@ function cpu_caps_custom() {
   echo "➡️ version: ${custom_image}"
 
   for virt_handler in "${virt_handlers[@]}"; do
-    local pod_name=$(echo "${virt_handler}" | cut -d',' -f1)
-    local node_name=$(echo "${virt_handler}" | cut -d',' -f2)
-    local debugger_name=debug-"${now}"
-    echo "  ☸ ${KUBEVIRT_NAMESPACE}/${pod_name}"
-    kubectl -n "${KUBEVIRT_NAMESPACE}" debug \
-      --image="${custom_image}" \
-      --container "${debugger_name}" \
-      --profile=general \
-      --custom="${src_dir}"/scc.yaml \
-      "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
-
-    set +e
-    echo "    ⚙️ waiting for debugger ${pod_name}/${debugger_name} to come online..."
-    while true; do
-      kubectl -n "${KUBEVIRT_NAMESPACE}" exec -c "${debugger_name}" "${pod_name}" -- ls -al /var/lib/kubevirt-node-labeller/.done >/dev/null 2>&1
-      if [ "$?" -eq 0 ]; then
-        break
-      fi
-      sleep 5
-    done
-    set -e
-
-    local image_tag=$(echo "${custom_image}" | cut -d":" -f2)
-    kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c "${debugger_name}" "${pod_name}":/var/lib/kubevirt-node-labeller ./out-"${now}/${node_name}/${image_tag}"
+    run_debugger "${virt_handler}" "${custom_image}"
   done
+}
+
+function run_debugger() {
+  local virt_handler="$1"
+  local virt_launcher_image="$2"
+  local pod_name=$(echo "${virt_handler}" | cut -d',' -f1)
+  local node_name=$(echo "${virt_handler}" | cut -d',' -f2)
+  local debugger_name=debug-"${now}"
+  echo "  ⚙️ ${KUBEVIRT_NAMESPACE}/${pod_name}"
+  kubectl -n "${KUBEVIRT_NAMESPACE}" debug \
+    --image="${virt_launcher_image}" \
+    --container "${debugger_name}" \
+    --profile=general \
+    --custom="${src_dir}"/scc.yaml \
+    "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
+
+  set +e
+  echo "    🔅 waiting for debugger ${pod_name}/${debugger_name} to come online..."
+  while true; do
+    kubectl -n "${KUBEVIRT_NAMESPACE}" exec -c "${debugger_name}" "${pod_name}" -- ls -al /var/lib/kubevirt-node-labeller/.done >/dev/null 2>&1
+    if [ "$?" -eq 0 ]; then
+      break
+    fi
+    sleep 5
+  done
+  set -e
+
+  local image_tag=$(echo "${virt_launcher_image}" | cut -d":" -f2)
+  kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c "${debugger_name}" "${pod_name}":/var/lib/kubevirt-node-labeller ./out-"${now}/${node_name}/${image_tag}"
 }
 
 function tarball() {
