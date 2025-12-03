@@ -1,30 +1,26 @@
 #!/bin/bash
 
 # This script collects the virsh capabilities files from all virt-handler pods in
-# the ${KUBEVIRT_NAMESPACE} namespace. It also starts an ephemeral container in
-# each virt-handler pod to run a custom version of the virt-handler image (defined
-# by the ${VIRT_HANDLER_IMAGE_CUSTOM} variable), to collect the same set of virsh
-# capabilities files.
+# the ${KUBEVIRT_NAMESPACE} namespace.
 #
-# We can compare the collected virsh capabilities files to identify differences
-# betweeen different versions of virt-handler.
+# If the ${VIRT_LAUNCHER_IMAGE_CUSTOM} variable is specified, it starts an
+# ephemeral container in each virt-handler pod using the custom virt-launcher
+# image to collect the same set of virsh capabilities files. This allows us to
+# compare the collected CPU capabilities identify by the different versions of
+# virt-handler.
+#
+# The ephemeral container executes the built-in node-labeller.sh script, writes
+# the output XML files to the container's /var/lib/kubevirt-node-labeller, and
+# copies the output from the container to your shell.
 #
 # This script requires kubeconfig to be included in $PATH, with permissions to
 # run `kubectl [debug|cp|exec]` targeting the ${KUBEVIRT_NAMESPACE} namespace.
-#
-# When launched, the ehpemeral container executes the built-in node-labeller.sh
-# script, writes the output XML files to the container's
-# /var/lib/kubevirt-node-labeller, and copies the output from the container to
-# your shell.
 
 set -e
 
 KUBEVIRT_NAMESPACE=${KUBEVIRT_NAMESPACE:-harvester-system}
-VIRT_HANDLER_IMAGE_CUSTOM=${VIRT_HANDLER_IMAGE_CUSTOM:-registry.suse.com/suse/sles/15.7/virt-launcher:1.5.2-150700.3.5.2}
 DEBUGGER_TTL_SECONDS=3600
 
-custom_image="${VIRT_HANDLER_IMAGE_CUSTOM}"
-cluster_image=$(kubectl -n "${KUBEVIRT_NAMESPACE}" get ds virt-handler -ojsonpath='{.spec.template.spec.containers[0].image}')
 now=$(date "+%Y%m%d-%H%M%S")
 src_dir=$(dirname $(readlink -f -- "${BASH_SOURCE[0]}"))
 virt_handlers=($(kubectl -n "${KUBEVIRT_NAMESPACE}" get po \
@@ -74,6 +70,7 @@ function cpu_caps_custom() {
       if [ "$?" -eq 0 ]; then
         break
       fi
+      sleep 5
     done
     set -e
 
@@ -89,6 +86,8 @@ function tarball() {
 
 echo "fetching virsh capabilities files..."
 cpu_caps
-cpu_caps_custom
+if [ ! -z "${VIRT_LAUNCHER_IMAGE_CUSTOM}" ]; then
+  cpu_caps_custom
+fi
 tarball
 echo "output saved to ./out-${now}.tar.gz"
