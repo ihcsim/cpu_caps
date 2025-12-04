@@ -56,7 +56,7 @@ function run_debugger() {
   local virt_launcher_image="$2"
   local pod_name=$(echo "${virt_handler}" | cut -d',' -f1)
   local node_name=$(echo "${virt_handler}" | cut -d',' -f2)
-  local debugger_name=debug-"${now}"
+  local debugger_name=debug-"$(date '+%Y%m%d-%H%M%S')"
   echo "  ⚙️ ${KUBEVIRT_NAMESPACE}/${pod_name}"
   kubectl -n "${KUBEVIRT_NAMESPACE}" debug \
     --image="${virt_launcher_image}" \
