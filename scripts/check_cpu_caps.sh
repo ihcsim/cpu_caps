@@ -28,6 +28,8 @@ virt_handlers=($(kubectl -n "${KUBEVIRT_NAMESPACE}" get po \
   --no-headers \
   -ojsonpath='{range .items[]}{.metadata.name},{.spec.nodeName}{"\n"}{end}'))
 
+declare -a tmp_out_paths
+
 # collect the virsh capabilities .xml files from the hostpath
 # /var/lib/kubevirt-node-labeller.
 function cpu_caps() {
@@ -57,16 +59,17 @@ function run_debugger() {
   local pod_name=$(echo "${virt_handler}" | cut -d',' -f1)
   local node_name=$(echo "${virt_handler}" | cut -d',' -f2)
   local debugger_name=debug-"$(date '+%Y%m%d-%H%M%S')"
-  echo "  ⚙️ ${KUBEVIRT_NAMESPACE}/${pod_name}"
+  echo "  ⏳ checking pod ${KUBEVIRT_NAMESPACE}/${pod_name}..."
   kubectl -n "${KUBEVIRT_NAMESPACE}" debug \
     --image="${virt_launcher_image}" \
     --container "${debugger_name}" \
     --profile=general \
     --custom="${src_dir}"/scc.yaml \
-    "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
+    "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; virsh version >> /var/lib/kubevirt-node-labeller/.version; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
 
   set +e
-  echo "    🔅 waiting for debugger ${pod_name}/${debugger_name} to come online..."
+  echo "     running debugger ${pod_name}/${debugger_name}..."
+
   while true; do
     kubectl -n "${KUBEVIRT_NAMESPACE}" exec -c "${debugger_name}" "${pod_name}" -- ls -al /var/lib/kubevirt-node-labeller/.done >/dev/null 2>&1
     if [ "$?" -eq 0 ]; then
@@ -77,7 +80,9 @@ function run_debugger() {
   set -e
 
   local image_tag=$(echo "${virt_launcher_image}" | cut -d":" -f2)
-  kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c "${debugger_name}" "${pod_name}":/var/lib/kubevirt-node-labeller ./out-"${now}/${node_name}/${image_tag}"
+  local out_path="./out-${now}/${node_name}/${image_tag}"
+  kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c "${debugger_name}" "${pod_name}":/var/lib/kubevirt-node-labeller "${out_path}"
+  tmp_out_paths+=(${out_path})
 }
 
 function tarball() {
@@ -85,10 +90,35 @@ function tarball() {
   rm -rf ./out-"${now}"
 }
 
-echo "fetching virsh capabilities files..."
+function report() {
+  echo ""
+  echo "⚙️ generating report summary..."
+  declare -A report
+  for out_path in "${tmp_out_paths[@]}"; do
+    node_name=$(echo "${out_path}" | cut -d'/' -f3)
+    image_tag=$(echo "${out_path}" | cut -d'/' -f4)
+    virsh_meta="$(cat ${out_path}/.version)"
+
+    entry="➡️ virt-launcher image: ${image_tag}
+${virsh_meta}"
+    if [ ! -z "${report[${node_name}]}" ]; then
+      entry="${report[${node_name}]}\n${entry}"
+    fi
+    report[${node_name}]="${entry}"
+  done
+
+  for node in "${!report[@]}"; do
+    echo "node: ${node}"
+    echo -e "${report[${node}]}"
+  done
+}
+
+echo "⚙️ discovering host and domain virt capabilities..."
 cpu_caps
 if [ ! -z "${VIRT_LAUNCHER_IMAGE_CUSTOM}" ]; then
   cpu_caps_custom
 fi
+report
 tarball
+echo ""
 echo "output saved to ./out-${now}.tar.gz"
