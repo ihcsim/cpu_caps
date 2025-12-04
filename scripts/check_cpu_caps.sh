@@ -65,7 +65,7 @@ function run_debugger() {
     --container "${debugger_name}" \
     --profile=general \
     --custom="${src_dir}"/scc.yaml \
-    "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; virsh version >> /var/lib/kubevirt-node-labeller/.version; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
+    "${pod_name}" -- /bin/bash -c "set -e; mkdir -p /var/lib/kubevirt-node-labeller; node-labeller.sh; virsh version > /var/lib/kubevirt-node-labeller/.version; touch /var/lib/kubevirt-node-labeller/.done; sleep ${DEBUGGER_TTL_SECONDS}"
 
   set +e
   echo "     running debugger ${pod_name}/${debugger_name}..."
@@ -95,22 +95,87 @@ function report() {
   echo "⚙️ generating report summary..."
   declare -A report
   for out_path in "${tmp_out_paths[@]}"; do
-    node_name=$(echo "${out_path}" | cut -d'/' -f3)
-    image_tag=$(echo "${out_path}" | cut -d'/' -f4)
-    virsh_meta="$(cat ${out_path}/.version)"
+    local node_name=$(echo "${out_path}" | cut -d'/' -f3)
+    local image_tag=$(echo "${out_path}" | cut -d'/' -f4)
 
-    entry="➡️ virt-launcher image: ${image_tag}
-${virsh_meta}"
-    if [ ! -z "${report[${node_name}]}" ]; then
-      entry="${report[${node_name}]}\n${entry}"
+    local host_cpu_model_info=($(host_cpu_model_info "${out_path}"))
+    local host_cpu_model="${host_cpu_model_info[0]}"
+    local vendor="${host_cpu_model_info[1]}"
+
+    local host_cpu_required_features="$(host_cpu_required_features "${out_path}")"
+    local format_host_cpu_required_features=$(echo "- ${host_cpu_required_features}" | sed -z 's/\n/\n      - /g' | head -n -1)
+
+    local supported_models=$(supported_models "${out_path}")
+    local format_supported_models=$(echo "- ${supported_models}" | sed -z 's/\n/\n    - /g' | head -n -1)
+
+    local supported_features=$(supported_features "${out_path}")
+    local format_supported_features=$(echo "- ${supported_features}" | sed -z 's/\n/\n    - /g' | head -n -1)
+
+    local virsh_meta=$(virsh_meta "${out_path}")
+    local format_virsh_meta=$(echo "${virsh_meta}" | sed -z 's/\n/\n      /g' | head -n -1)
+
+    local report_entry="  - virt_launcher: ${image_tag}
+    host_cpu_model:
+      name: ${host_cpu_model}
+      vendor: ${vendor}
+      required_features:
+      ${format_host_cpu_required_features}
+    supported_models:
+    ${format_supported_models}
+    supported_features:
+    ${format_supported_features}
+    virsh_version: |
+      ${format_virsh_meta}"
+
+    if [ -z "${report[${node_name}]}" ]; then
+      report[${node_name}]="  ${node_name}:\n${report_entry}"
+    else
+      report[${node_name}]="${report[${node_name}]}\n${report_entry}"
     fi
-    report[${node_name}]="${entry}"
   done
 
+  echo "nodes:" | tee -a ./out-"${now}"/report.yaml
   for node in "${!report[@]}"; do
-    echo "node: ${node}"
-    echo -e "${report[${node}]}"
+    echo -e "${report[${node}]}" | tee -a ./out-"${now}"/report.yaml
   done
+}
+
+# see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L98-L112
+function host_cpu_model_info() {
+  out_path="$1"
+  local host_cpu_model=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").model.+content')
+  local vendor=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").vendor')
+  echo "${host_cpu_model} ${vendor}"
+}
+
+# see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L114-L118
+function host_cpu_required_features() {
+  out_path="$1"
+  local required_features=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").feature.[] | select(.+@policy == "require").+@name')
+  echo "${required_features}"
+}
+
+# see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L121-L130
+# and https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L60-L62
+function supported_models() {
+  out_path="$1"
+  local usable_models=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[].model.[] | select(.+@usable=="yes").+content')
+  # @TODO supported_models = usable_models - obsolete_models
+  # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L60-L62
+  echo "${usable_models}"
+}
+
+# see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L142-L161
+function supported_features() {
+  out_path="$1"
+  local required_features=$(yq -oy ${out_path}/supported_features.xml | yq '.cpu.feature.[] | select(.+@policy == "require").+@name')
+  echo "${required_features}"
+}
+
+function virsh_meta() {
+  out_path="$1"
+  local virsh_meta=$(cat ${out_path}/.version)
+  echo "${virsh_meta}"
 }
 
 echo "⚙️ discovering host and domain virt capabilities..."
@@ -121,4 +186,4 @@ fi
 report
 tarball
 echo ""
-echo "output saved to ./out-${now}.tar.gz"
+echo "📝 output saved to ./out-${now}.tar.gz"
