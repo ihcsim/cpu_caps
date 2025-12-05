@@ -39,7 +39,7 @@ src_dir=$(dirname $(readlink -f -- "${BASH_SOURCE[0]}"))
 virt_handlers=($(kubectl -n "${KUBEVIRT_NAMESPACE}" get po \
   -lkubevirt.io=virt-handler \
   --no-headers \
-  -ojsonpath='{range .items[]}{.metadata.name},{.spec.nodeName}{"\n"}{end}'))
+  -ojsonpath='{range .items[*]}{.metadata.name},{.spec.nodeName}{"\n"}{end}'))
 declare -a tmp_out_paths
 
 # collect the virsh capabilities .xml files from the hostpath
