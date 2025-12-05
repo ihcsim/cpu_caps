@@ -1,22 +1,5 @@
 #!/bin/bash
 
-# This script collects the host CPU capabilities information from all the
-# virt-handler daemonset pods in the ${KUBEVIRT_NAMESPACE} namespace.
-#
-# The optional -i argument is used to specify a custom virt-launcher image, to
-# start an ephemeral container in each virt-handler pod to collect the host CPU
-# capabilities information using the specified version of virt-launcher. This
-# allows us to compare the collected capabilities information identify by the
-# different versions of virt-handler.
-#
-# The ephemeral container executes the built-in node-labeller.sh script, writes
-# the output XML files to the container's /var/lib/kubevirt-node-labeller, and
-# copies the output from the container to your shell. It uses the same service
-# account as the owning virt-handler pod.
-#
-# This script requires kubeconfig to be included in $PATH, with permissions to
-# run `kubectl [debug|cp|exec]` targeting the ${KUBEVIRT_NAMESPACE} namespace.
-
 set -e
 
 KUBEVIRT_NAMESPACE=${KUBEVIRT_NAMESPACE:-harvester-system}
