@@ -103,7 +103,6 @@ function tarball() {
 }
 
 function report() {
-  echo ""
   echo "⚙️ generating report summary..."
   declare -A report
   for out_path in "${tmp_out_paths[@]}"; do
@@ -124,7 +123,7 @@ function report() {
     local format_supported_features=$(echo "- ${supported_features}" | sed -z 's/\n/\n    - /g' | head -n -1)
 
     local virsh_meta=$(virsh_meta "${out_path}")
-    local format_virsh_meta=$(echo "${virsh_meta}" | sed -z 's/\n/\n      /g' | head -n -1)
+    local format_virsh_meta=$(echo "${virsh_meta}" | sed -z 's/\n/\n      /g' | head -n -2)
 
     local report_entry="  - virt_launcher: ${image_tag}
     host_cpu_model:
@@ -146,10 +145,11 @@ function report() {
     fi
   done
 
-  echo "nodes:" | tee -a ./out-"${now}"/report.yaml
+  echo "nodes:" >./out-"${now}"/report.yaml
   for node in "${!report[@]}"; do
-    echo -e "${report[${node}]}" | tee -a ./out-"${now}"/report.yaml
+    echo -e "${report[${node}]}" >>./out-"${now}"/report.yaml
   done
+  echo "  📝 output saved to ./out-${now}.tar.gz"
 }
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L98-L112
@@ -197,5 +197,3 @@ if [ ! -z "${virt_launcher_custom_image_path}" ]; then
 fi
 report
 tarball
-echo ""
-echo "📝 output saved to ./out-${now}.tar.gz"
