@@ -22,7 +22,7 @@ The kubeconfig must be included in the shell `$PATH` with permissions to run
 ## Usage
 
 The examples in this usage section is performed on a
-[Harvester](https://harvesterhci.io/) 1.5.2 cluster, with 2 nodes namespace
+[Harvester](https://harvesterhci.io/) 1.5.2 cluster, with 2 nodes named
 `isim-dev` and `isim-dev2`. It covers the scenario of running a new version of
 `virt-launcher` on the 1.5.2 cluster.
 
