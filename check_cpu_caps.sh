@@ -16,6 +16,10 @@ while getopts "hi:" opt; do
     echo "Usage: $0 [-i virt-handler-custom-image-path]"
     exit 0
     ;;
+  *)
+    echo "Usage: $0 [-i virt-handler-custom-image-path]"
+    exit 1
+    ;;
   esac
 done
 
