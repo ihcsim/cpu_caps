@@ -485,91 +485,380 @@ yq '.nodes[] | .[] | "virt_launcher: \(.virt_launcher)\n\(.host_cpu_model)\n"' r
 <summary>Expand to see report output.</summary>
 
 ```yaml
-virt_launcher: 1.4.1-150600.5.21.2
-name: EPYC-Genoa
-vendor: AMD
-required_features:
-  - x2apic
-  - tsc-deadline
-  - hypervisor
-  - tsc_adjust
-  - spec-ctrl
-  - stibp
-  - arch-capabilities
-  - ssbd
-  - cmp_legacy
-  - virt-ssbd
-  - rdctl-no
-  - skip-l1dfl-vmentry
-  - mds-no
-  - pschange-mc-no
-  - gds-no
-
-virt_launcher: 1.6.3
-name: EPYC-Genoa
-vendor: AMD
-required_features:
-  - x2apic
-  - tsc-deadline
-  - hypervisor
-  - tsc_adjust
-  - spec-ctrl
-  - stibp
-  - arch-capabilities
-  - ssbd
-  - cmp_legacy
-  - overflow-recov
-  - succor
-  - virt-ssbd
-  - rdctl-no
-  - skip-l1dfl-vmentry
-  - mds-no
-  - pschange-mc-no
-  - gds-no
-  - rfds-no
-
-virt_launcher: 1.4.1-150600.5.21.2
-name: EPYC-Genoa
-vendor: AMD
-required_features:
-  - x2apic
-  - tsc-deadline
-  - hypervisor
-  - tsc_adjust
-  - spec-ctrl
-  - stibp
-  - arch-capabilities
-  - ssbd
-  - cmp_legacy
-  - virt-ssbd
-  - rdctl-no
-  - skip-l1dfl-vmentry
-  - mds-no
-  - pschange-mc-no
-  - gds-no
-
-virt_launcher: 1.6.3
-name: EPYC-Genoa
-vendor: AMD
-required_features:
-  - x2apic
-  - tsc-deadline
-  - hypervisor
-  - tsc_adjust
-  - spec-ctrl
-  - stibp
-  - arch-capabilities
-  - ssbd
-  - cmp_legacy
-  - overflow-recov
-  - succor
-  - virt-ssbd
-  - rdctl-no
-  - skip-l1dfl-vmentry
-  - mds-no
-  - pschange-mc-no
-  - gds-no
-  - rfds-no
+  nodes:
+  isim-dev2:
+  - virt_launcher: 1.6.3
+    host_cpu_model:
+      name: EPYC-Genoa
+      vendor: AMD
+      required_features:
+      - x2apic
+      - tsc-deadline
+      - hypervisor
+      - tsc_adjust
+      - spec-ctrl
+      - stibp
+      - arch-capabilities
+      - ssbd
+      - cmp_legacy
+      - overflow-recov
+      - succor
+      - virt-ssbd
+      - lbrv
+      - tsc-scale
+      - vmcb-clean
+      - flushbyasid
+      - pause-filter
+      - pfthreshold
+      - vgif
+      - rdctl-no
+      - skip-l1dfl-vmentry
+      - mds-no
+      - pschange-mc-no
+      - gds-no
+      - rfds-no
+    supported_models:
+    - Denverton-v2
+    - Denverton-v3
+    - Dhyana
+    - Dhyana-v1
+    - Dhyana-v2
+    - EPYC
+    - EPYC-IBPB
+    - EPYC-Rome
+    - EPYC-Rome-v1
+    - EPYC-Rome-v2
+    - EPYC-Rome-v3
+    - EPYC-Rome-v4
+    - EPYC-v1
+    - EPYC-v2
+    - EPYC-v3
+    - EPYC-v4
+    - IvyBridge
+    - IvyBridge-IBRS
+    - IvyBridge-v1
+    - IvyBridge-v2
+    - Nehalem
+    - Nehalem-IBRS
+    - Nehalem-v1
+    - Nehalem-v2
+    - Opteron_G3
+    - Opteron_G3-v1
+    - Penryn
+    - Penryn-v1
+    - SandyBridge
+    - SandyBridge-IBRS
+    - SandyBridge-v1
+    - SandyBridge-v2
+    - Westmere
+    - Westmere-IBRS
+    - Westmere-v1
+    supported_features:
+    - 3dnowprefetch
+    - abm
+    - adx
+    - aes
+    - amd-psfd
+    - amd-ssbd
+    - amd-stibp
+    - apic
+    - arat
+    - arch-capabilities
+    - avx
+    - avx2
+    - avx512-bf16
+    - avx512-vpopcntdq
+    - avx512bitalg
+    - avx512bw
+    - avx512cd
+    - avx512dq
+    - avx512f
+    - avx512ifma
+    - avx512vbmi
+    - avx512vbmi2
+    - avx512vl
+    - avx512vnni
+    - bmi1
+    - bmi2
+    - clflush
+    - clflushopt
+    - clwb
+    - clzero
+    - cmov
+    - cmp_legacy
+    - cr8legacy
+    - cx16
+    - cx8
+    - de
+    - erms
+    - f16c
+    - flushbyasid
+    - fma
+    - fpu
+    - fsgsbase
+    - fsrm
+    - fxsr
+    - fxsr_opt
+    - gds-no
+    - gfni
+    - hypervisor
+    - ibpb
+    - ibrs
+    - invpcid
+    - lahf_lm
+    - lbrv
+    - lfence-always-serializing
+    - lm
+    - mca
+    - mce
+    - mds-no
+    - misalignsse
+    - mmx
+    - mmxext
+    - movbe
+    - msr
+    - mtrr
+    - no-nested-data-bp
+    - npt
+    - nrip-save
+    - null-sel-clr-base
+    - nx
+    - osvw
+    - overflow-recov
+    - pae
+    - pat
+    - pause-filter
+    - pclmuldq
+    - pdpe1gb
+    - perfctr_core
+    - pfthreshold
+    - pge
+    - pku
+    - pni
+    - popcnt
+    - pschange-mc-no
+    - pse
+    - pse36
+    - rdctl-no
+    - rdpid
+    - rdrand
+    - rdseed
+    - rdtscp
+    - rfds-no
+    - sep
+    - sha-ni
+    - skip-l1dfl-vmentry
+    - smap
+    - smep
+    - spec-ctrl
+    - ssbd
+    - sse
+    - sse2
+    - sse4.1
+    - sse4.2
+    - sse4a
+    - ssse3
+    - stibp
+    - stibp-always-on
+    - succor
+    - svm
+    - svme-addr-chk
+    - syscall
+    - tsc
+    - tsc-deadline
+    - tsc-scale
+    - tsc_adjust
+    - umip
+    - vaes
+    - vgif
+    - virt-ssbd
+    - vmcb-clean
+    - vme
+    - vpclmulqdq
+    - wbnoinvd
+    - x2apic
+    - xgetbv1
+    - xsave
+    - xsavec
+    - xsaveerptr
+    - xsaveopt
+    - xsaves
+    virsh_version: |
+      Compiled against library: libvirt 11.0.0
+      Using library: libvirt 11.0.0
+      Using API: QEMU 11.0.0
+  - virt_launcher: 1.4.1-150600.5.21.2
+    host_cpu_model:
+      name: EPYC-Genoa
+      vendor: AMD
+      required_features:
+      - x2apic
+      - tsc-deadline
+      - hypervisor
+      - tsc_adjust
+      - spec-ctrl
+      - stibp
+      - arch-capabilities
+      - ssbd
+      - cmp_legacy
+      - virt-ssbd
+      - lbrv
+      - tsc-scale
+      - vmcb-clean
+      - flushbyasid
+      - pause-filter
+      - pfthreshold
+      - vgif
+      - rdctl-no
+      - skip-l1dfl-vmentry
+      - mds-no
+      - pschange-mc-no
+      - gds-no
+    supported_models:
+    - Westmere-IBRS
+    - Westmere
+    - SandyBridge-IBRS
+    - SandyBridge
+    - Penryn
+    - Opteron_G3
+    - Nehalem-IBRS
+    - Nehalem
+    - IvyBridge-IBRS
+    - IvyBridge
+    - EPYC-Rome
+    - EPYC-IBPB
+    - EPYC
+    supported_features:
+    - 3dnowprefetch
+    - abm
+    - adx
+    - aes
+    - amd-psfd
+    - amd-ssbd
+    - amd-stibp
+    - apic
+    - arat
+    - arch-capabilities
+    - avx
+    - avx2
+    - avx512-bf16
+    - avx512-vpopcntdq
+    - avx512bitalg
+    - avx512bw
+    - avx512cd
+    - avx512dq
+    - avx512f
+    - avx512ifma
+    - avx512vbmi
+    - avx512vbmi2
+    - avx512vl
+    - avx512vnni
+    - bmi1
+    - bmi2
+    - clflush
+    - clflushopt
+    - clwb
+    - clzero
+    - cmov
+    - cmp_legacy
+    - cr8legacy
+    - cx16
+    - cx8
+    - de
+    - erms
+    - f16c
+    - flushbyasid
+    - fma
+    - fpu
+    - fsgsbase
+    - fsrm
+    - fxsr
+    - fxsr_opt
+    - gds-no
+    - gfni
+    - hypervisor
+    - ibpb
+    - ibrs
+    - invpcid
+    - lahf_lm
+    - lbrv
+    - lfence-always-serializing
+    - lm
+    - mca
+    - mce
+    - mds-no
+    - misalignsse
+    - mmx
+    - mmxext
+    - movbe
+    - msr
+    - mtrr
+    - no-nested-data-bp
+    - npt
+    - nrip-save
+    - null-sel-clr-base
+    - nx
+    - osvw
+    - pae
+    - pat
+    - pause-filter
+    - pclmuldq
+    - pdpe1gb
+    - perfctr_core
+    - pfthreshold
+    - pge
+    - pku
+    - pni
+    - popcnt
+    - pschange-mc-no
+    - pse
+    - pse36
+    - rdctl-no
+    - rdpid
+    - rdrand
+    - rdseed
+    - rdtscp
+    - sep
+    - sha-ni
+    - skip-l1dfl-vmentry
+    - smap
+    - smep
+    - spec-ctrl
+    - ssbd
+    - sse
+    - sse2
+    - sse4.1
+    - sse4.2
+    - sse4a
+    - ssse3
+    - stibp
+    - stibp-always-on
+    - svm
+    - svme-addr-chk
+    - syscall
+    - tsc
+    - tsc-deadline
+    - tsc-scale
+    - tsc_adjust
+    - umip
+    - vaes
+    - vgif
+    - virt-ssbd
+    - vmcb-clean
+    - vme
+    - vpclmulqdq
+    - wbnoinvd
+    - x2apic
+    - xgetbv1
+    - xsave
+    - xsavec
+    - xsaveerptr
+    - xsaveopt
+    - xsaves
+    virsh_version: |
+      Compiled against library: libvirt 10.0.0
+      Using library: libvirt 10.0.0
+      Using API: QEMU 10.0.0
 ```
 
 </details>
@@ -695,7 +984,6 @@ owner pod is restarted.
 
 ## ToDo
 
-* Account for obsolete CPU models in the computation of the supported CPU models list
 * Account for known CPU models list
 
 ## LICENSE

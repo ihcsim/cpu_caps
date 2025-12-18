@@ -2,6 +2,8 @@
 
 set -e
 
+source ./obsolete.sh
+
 KUBEVIRT_NAMESPACE=${KUBEVIRT_NAMESPACE:-harvester-system}
 DEBUGGER_TTL_SECONDS=3600
 
@@ -103,7 +105,8 @@ function report() {
     local format_host_cpu_required_features=$(echo "- ${host_cpu_required_features}" | sed -z 's/\n/\n      - /g' | head -n -1)
 
     local supported_models=$(supported_models "${out_path}")
-    local format_supported_models=$(echo "- ${supported_models}" | sed -z 's/\n/\n    - /g' | head -n -1)
+    local format_supported_models=$(echo "${supported_models}" | sed -z 's/ /\n    - /g' | head -n -1)
+    format_supported_models=$(echo "- ${format_supported_models}")
 
     local supported_features=$(supported_features "${out_path}")
     local format_supported_features=$(echo "- ${supported_features}" | sed -z 's/\n/\n    - /g' | head -n -1)
@@ -157,10 +160,25 @@ function host_cpu_required_features() {
 # and https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L60-L62
 function supported_models() {
   out_path="$1"
-  local usable_models=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[].model.[] | select(.+@usable=="yes").+content')
-  # @TODO supported_models = usable_models - obsolete_models
-  # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L60-L62
-  echo "${usable_models}"
+  local usable_models=($(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[].model.[] | select(.+@usable=="yes").+content'))
+  local supported_models=""
+  for usable_model in "${usable_models[@]}"; do
+    local obsolete="false"
+    for obsolete_cpu in "${!obsolete_cpu_models[@]}"; do
+      if [ "${usable_model}" = "${obsolete_cpu}" ]; then
+        obsolete="true"
+      fi
+    done
+
+    if [ "${obsolete}" = "false" ]; then
+      if [ -z "${supported_models}" ]; then
+        supported_models="${usable_model}"
+      else
+        supported_models="${supported_models} ${usable_model}"
+      fi
+    fi
+  done
+  echo "${supported_models}"
 }
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L142-L161
