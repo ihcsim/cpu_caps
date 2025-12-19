@@ -31,25 +31,23 @@ virt_handlers=($(kubectl -n "${KUBEVIRT_NAMESPACE}" get po \
   -ojsonpath='{range .items[*]}{.metadata.name},{.spec.nodeName}{"\n"}{end}'))
 declare -a tmp_out_paths
 
-# collect the cpu capabilities .xml files from the host using the in-cluster
-# version of the virt-launcher image
+# collect the cpu capabilities .xml files from the host using virt-launcher.
+# the image used by the in-cluster virt-handler daemonset is used as the default
+# version.
+# if the ${virt_launcher_custom_image_path} variable is specified, it will be added
+# to the discovery iterations.
 function cpu_caps() {
-  local cluster_image=$(kubectl -n "${KUBEVIRT_NAMESPACE}" get ds virt-handler -ojsonpath='{.spec.template.spec.initContainers[?(@.name=="virt-launcher")].image}')
-  echo "➡️ version: ${cluster_image}"
+  declare -a image_versions
+  image_versions+=("$(kubectl -n "${KUBEVIRT_NAMESPACE}" get ds virt-handler -ojsonpath='{.spec.template.spec.initContainers[?(@.name=="virt-launcher")].image}')")
+  if [ ! -z "${virt_launcher_custom_image_path}" ]; then
+    image_versions+=("${virt_launcher_custom_image_path}")
+  fi
 
-  for virt_handler in "${virt_handlers[@]}"; do
-    run_debugger "${virt_handler}" "${cluster_image}"
-  done
-}
-
-# collect the cpu capabilities .xml files from the host using a custom
-# virt-launcher image
-function cpu_caps_custom() {
-  local custom_image="${virt_launcher_custom_image_path}"
-  echo "➡️ version: ${custom_image}"
-
-  for virt_handler in "${virt_handlers[@]}"; do
-    run_debugger "${virt_handler}" "${custom_image}"
+  for version in "${image_versions[@]}"; do
+    echo "➡️ version: ${version}"
+    for virt_handler in "${virt_handlers[@]}"; do
+      run_debugger "${virt_handler}" "${version}"
+    done
   done
 }
 
@@ -74,8 +72,7 @@ function run_debugger() {
   echo "     running debugger ${pod_name}/${debugger_name}..."
 
   while true; do
-    kubectl -n "${KUBEVIRT_NAMESPACE}" exec -c "${debugger_name}" "${pod_name}" -- ls -al /var/lib/kubevirt-node-labeller/.done >/dev/null 2>&1
-    if [ "$?" -eq 0 ]; then
+    if kubectl -n "${KUBEVIRT_NAMESPACE}" exec -c "${debugger_name}" "${pod_name}" -- ls -al /var/lib/kubevirt-node-labeller/.done >/dev/null 2>&1; then
       break
     fi
     sleep 5
@@ -85,7 +82,7 @@ function run_debugger() {
   local image_tag=$(echo "${virt_launcher_image}" | cut -d":" -f2)
   local out_path="./out-${now}/${node_name}/${image_tag}"
   kubectl -n "${KUBEVIRT_NAMESPACE}" cp -c "${debugger_name}" "${pod_name}":/var/lib/kubevirt-node-labeller "${out_path}"
-  tmp_out_paths+=(${out_path})
+  tmp_out_paths+=("${out_path}")
 }
 
 function tarball() {
@@ -101,21 +98,21 @@ function report() {
     local node_name=$(echo "${out_path}" | cut -d'/' -f3)
     local image_tag=$(echo "${out_path}" | cut -d'/' -f4)
 
-    local host_cpu_model_info=($(host_cpu_model_info "${out_path}"))
+    local host_cpu_model_info=($(get_host_cpu_model_info "${out_path}"))
     local host_cpu_model="${host_cpu_model_info[0]}"
     local vendor="${host_cpu_model_info[1]}"
 
-    local host_cpu_required_features="$(host_cpu_required_features "${out_path}")"
+    local host_cpu_required_features="$(get_host_cpu_required_features "${out_path}")"
     local format_host_cpu_required_features=$(echo "- ${host_cpu_required_features}" | sed -z 's/\n/\n      - /g' | head -n -1)
 
-    local supported_models=$(supported_models "${out_path}")
+    local supported_models=$(get_supported_models "${out_path}")
     local format_supported_models=$(echo "${supported_models}" | sed -z 's/ /\n    - /g' | head -n -1)
     format_supported_models=$(echo "- ${format_supported_models}")
 
-    local supported_features=$(supported_features "${out_path}")
+    local supported_features=$(get_supported_features "${out_path}")
     local format_supported_features=$(echo "- ${supported_features}" | sed -z 's/\n/\n    - /g' | head -n -1)
 
-    local virsh_meta=$(virsh_meta "${out_path}")
+    local virsh_meta=$(get_virsh_meta "${out_path}")
     local format_virsh_meta=$(echo "${virsh_meta}" | sed -z 's/\n/\n      /g' | head -n -2)
 
     local report_entry="  - virt_launcher: ${image_tag}
@@ -146,7 +143,7 @@ function report() {
 }
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L98-L112
-function host_cpu_model_info() {
+function get_host_cpu_model_info() {
   out_path="$1"
   local host_cpu_model=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").model.+content')
   local vendor=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").vendor')
@@ -154,7 +151,7 @@ function host_cpu_model_info() {
 }
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L114-L118
-function host_cpu_required_features() {
+function get_host_cpu_required_features() {
   out_path="$1"
   local required_features=$(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[] | select(.+@name == "host-model").feature.[] | select(.+@policy == "require").+@name')
   echo "${required_features}"
@@ -162,7 +159,7 @@ function host_cpu_required_features() {
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L121-L130
 # and https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L60-L62
-function supported_models() {
+function get_supported_models() {
   out_path="$1"
   local usable_models=($(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[].model.[] | select(.+@usable=="yes").+content'))
   local supported_models=""
@@ -186,22 +183,19 @@ function supported_models() {
 }
 
 # see https://github.com/kubevirt/kubevirt/blob/ef9e136df7e676b408fb8b38dffbdf91be491601/pkg/virt-handler/node-labeller/cpu_plugin.go#L142-L161
-function supported_features() {
+function get_supported_features() {
   out_path="$1"
   local required_features=$(yq -oy ${out_path}/supported_features.xml | yq '.cpu.feature.[] | select(.+@policy == "require").+@name')
   echo "${required_features}"
 }
 
-function virsh_meta() {
+function get_virsh_meta() {
   out_path="$1"
   local virsh_meta=$(cat ${out_path}/.version)
   echo "${virsh_meta}"
 }
 
-echo "⚙️ discovering host and domain virt capabilities..."
+echo "⚙️ discovering host and domain cpu capabilities..."
 cpu_caps
-if [ ! -z "${virt_launcher_custom_image_path}" ]; then
-  cpu_caps_custom
-fi
 report
 tarball
