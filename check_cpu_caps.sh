@@ -29,6 +29,7 @@ virt_handlers=($(kubectl -n "${KUBEVIRT_NAMESPACE}" get po \
   -lkubevirt.io=virt-handler \
   --no-headers \
   -ojsonpath='{range .items[*]}{.metadata.name},{.spec.nodeName}{"\n"}{end}'))
+cluster_node_count=$(kubectl get node --no-headers | wc -l)
 declare -a tmp_out_paths
 
 # collect the cpu capabilities .xml files from the host using virt-launcher.
@@ -94,6 +95,8 @@ function tarball() {
 function report() {
   echo "⚙️ generating report summary..."
   declare -A report
+  declare -A global_supported_models_with_node_names
+  declare -A global_supported_models_with_node_count
   for out_path in "${tmp_out_paths[@]}"; do
     local node_name=$(echo "${out_path}" | cut -d'/' -f3)
     local image_tag=$(echo "${out_path}" | cut -d'/' -f4)
@@ -108,6 +111,8 @@ function report() {
     local supported_models=$(get_supported_models "${out_path}")
     local format_supported_models=$(echo "${supported_models}" | sed -z 's/ /\n    - /g' | head -n -1)
     format_supported_models=$(echo "- ${format_supported_models}")
+
+    collect_global_supported_models "${out_path}" "${node_name}"
 
     local supported_features=$(get_supported_features "${out_path}")
     local format_supported_features=$(echo "- ${supported_features}" | sed -z 's/\n/\n    - /g' | head -n -1)
@@ -135,7 +140,15 @@ function report() {
     fi
   done
 
-  echo "nodes:" >./out-"${now}"/report.yaml
+  # print global entries
+  local global_supported_models=$(get_global_supported_models)
+  local global_entry="global:
+  supported_cpu_models:
+${global_supported_models}"
+  echo -e "${global_entry}" >./out-"${now}"/report.yaml
+
+  # print per node entries
+  echo "nodes:" >>./out-"${now}"/report.yaml
   for node in "${!report[@]}"; do
     echo -e "${report[${node}]}" >>./out-"${now}"/report.yaml
   done
@@ -177,6 +190,51 @@ function get_supported_models() {
       else
         supported_models="${supported_models} ${usable_model}"
       fi
+    fi
+  done
+  echo "${supported_models}"
+}
+
+function collect_global_supported_models() {
+  out_path="$1"
+  node_name="$2"
+  local usable_models=($(yq -oy ${out_path}/virsh_domcapabilities.xml | yq '.domainCapabilities.cpu.mode.[].model.[] | select(.+@usable=="yes").+content'))
+  local supported_models=""
+  for usable_model in "${usable_models[@]}"; do
+    local obsolete="false"
+    for obsolete_cpu in "${!obsolete_cpu_models[@]}"; do
+      if [ "${usable_model}" = "${obsolete_cpu}" ]; then
+        obsolete="true"
+      fi
+    done
+
+    if [ "${obsolete}" = "false" ]; then
+      if [ -z "${global_supported_models_with_node_names[${usable_model}]}" ]; then
+        global_supported_models_with_node_names[${usable_model}]="${node_name}"
+        global_supported_models_with_node_count[${usable_model}]=1
+      else
+        global_supported_models_with_node_names[${usable_model}]="${global_supported_models_with_node_names[${usable_model}]} ${node_name}"
+        ((global_supported_models_with_node_count[${usable_model}]++))
+      fi
+    fi
+  done
+}
+
+function get_global_supported_models() {
+  local supported_models
+  local threshold=$((cluster_node_count / 2))
+  for model in "${!global_supported_models_with_node_count[@]}"; do
+    # a cpu model is considered a globally supported candidate if more than half
+    # half of the nodes can support it
+    count=${global_supported_models_with_node_count[${model}]}
+    if [[ ${count} -lt ${threshold} ]]; then
+      continue
+    fi
+
+    if [ -z "${supported_models}" ]; then
+      supported_models="  - ${model}: ${global_supported_models_with_node_names[${model}]}"
+    else
+      supported_models="${supported_models}\n  - ${model}: ${global_supported_models_with_node_names[${model}]}"
     fi
   done
   echo "${supported_models}"
