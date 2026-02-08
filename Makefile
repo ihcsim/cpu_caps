@@ -5,6 +5,9 @@ check:
 crates:
 	cargo add quick-xml --features serialize,async-tokio,encoding
 
+deps:
+	cargo machete --fix || true
+
 run:
 	cargo run
 
