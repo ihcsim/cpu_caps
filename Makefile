@@ -2,9 +2,6 @@ check:
 	cargo fmt -- --check
 	cargo check
 
-crates:
-	cargo add quick-xml --features serialize,async-tokio,encoding
-
 deps:
 	cargo machete --fix || true
 
@@ -14,8 +11,11 @@ run:
 test:
 	cargo test -- --nocapture
 
-rsstruct:
-	xml_schema_generator ./testdata/virsh_domcapabilities.xml src/schema/mod.rs
+xml_to_rs:
+	for mod in virsh_domcapabilities capabilities supported_features; do \
+		rm -rf ./src/de/types/$$mod.rs; \
+		xml_schema_generator -d "Serialize, Deserialize, Debug, PartialEq" ./testdata/$$mod.xml ./src/de/types/$$mod.rs; \
+	done
 
 tools:
 	cargo install -f xml_schema_generator --features="env_logger"

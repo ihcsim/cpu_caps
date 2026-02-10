@@ -921,6 +921,24 @@ The ephemeral container has a default TTL of 1 hour. It does not interfere with
 the operation of the primary container and is automatically removed when the
 owner pod is restarted.
 
+## Development
+
+To build and test the code:
+
+```sh
+make check
+
+make run
+
+make test
+```
+
+To re-generate the Rust structs in the `src/de/types` module:
+
+```sh
+make xml_to_rs
+```
+
 ## ToDo
 
 * Account for known CPU models list
