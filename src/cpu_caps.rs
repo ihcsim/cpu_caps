@@ -50,11 +50,21 @@ impl NodeCaps {
                 vendor: String::new(),
                 required_features: Vec::new(),
             },
-            supported_features: Vec::new(),
+            supported_features: NodeCaps::supported_features(libvirt_data.cpu),
             supported_models: NodeCaps::supported_models(libvirt_data.domcaps),
             virsh_version: String::new(),
             virt_launcher_version: String::new(),
         }
+    }
+
+    fn supported_features(cpu: &supported_features::Cpu) -> Vec<String> {
+        let mut supported_features = Vec::new();
+        for feature in &cpu.feature {
+            if feature.policy == "require" {
+                supported_features.push(feature.name.clone());
+            }
+        }
+        supported_features
     }
 
     fn supported_models(domcaps: &virsh_domcapabilities::DomainCapabilities) -> Vec<String> {
@@ -89,7 +99,7 @@ mod test {
 
     use super::NodeCaps;
     use crate::de;
-    use crate::de::types::virsh_domcapabilities;
+    use crate::de::types::{supported_features, virsh_domcapabilities};
 
     #[test]
     fn test_supported_models() {
@@ -159,6 +169,148 @@ mod test {
         ];
         let actual = NodeCaps::supported_models(&domcaps);
         assert_eq!(actual.len(), 58);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_supported_features() {
+        let path = Path::new("testdata").join("supported_features.xml");
+        let raw = fs::read_to_string(path).unwrap();
+        let reader = BufReader::new(raw.as_bytes());
+        let cpus: supported_features::Cpu = de::from_reader(reader).unwrap();
+        let expected = vec![
+            "3dnowprefetch",
+            "abm",
+            "adx",
+            "aes",
+            "amd-psfd",
+            "amd-ssbd",
+            "amd-stibp",
+            "apic",
+            "arat",
+            "arch-capabilities",
+            "avx",
+            "avx2",
+            "avx512-bf16",
+            "avx512-vpopcntdq",
+            "avx512bitalg",
+            "avx512bw",
+            "avx512cd",
+            "avx512dq",
+            "avx512f",
+            "avx512ifma",
+            "avx512vbmi",
+            "avx512vbmi2",
+            "avx512vl",
+            "avx512vnni",
+            "bmi1",
+            "bmi2",
+            "clflush",
+            "clflushopt",
+            "clwb",
+            "clzero",
+            "cmov",
+            "cmp_legacy",
+            "cr8legacy",
+            "cx16",
+            "cx8",
+            "de",
+            "erms",
+            "f16c",
+            "flushbyasid",
+            "fma",
+            "fpu",
+            "fsgsbase",
+            "fsrm",
+            "fxsr",
+            "fxsr_opt",
+            "gds-no",
+            "gfni",
+            "hypervisor",
+            "ibpb",
+            "ibrs",
+            "invpcid",
+            "lahf_lm",
+            "lbrv",
+            "lfence-always-serializing",
+            "lm",
+            "mca",
+            "mce",
+            "mds-no",
+            "misalignsse",
+            "mmx",
+            "mmxext",
+            "movbe",
+            "msr",
+            "mtrr",
+            "no-nested-data-bp",
+            "npt",
+            "nrip-save",
+            "null-sel-clr-base",
+            "nx",
+            "osvw",
+            "overflow-recov",
+            "pae",
+            "pat",
+            "pause-filter",
+            "pclmuldq",
+            "pdpe1gb",
+            "perfctr_core",
+            "pfthreshold",
+            "pge",
+            "pku",
+            "pni",
+            "popcnt",
+            "pschange-mc-no",
+            "pse",
+            "pse36",
+            "rdctl-no",
+            "rdpid",
+            "rdrand",
+            "rdseed",
+            "rdtscp",
+            "rfds-no",
+            "sep",
+            "sha-ni",
+            "skip-l1dfl-vmentry",
+            "smap",
+            "smep",
+            "spec-ctrl",
+            "ssbd",
+            "sse",
+            "sse2",
+            "sse4.1",
+            "sse4.2",
+            "sse4a",
+            "ssse3",
+            "stibp",
+            "stibp-always-on",
+            "succor",
+            "svm",
+            "svme-addr-chk",
+            "syscall",
+            "tsc",
+            "tsc-deadline",
+            "tsc-scale",
+            "tsc_adjust",
+            "umip",
+            "vaes",
+            "vgif",
+            "virt-ssbd",
+            "vmcb-clean",
+            "vme",
+            "vpclmulqdq",
+            "wbnoinvd",
+            "x2apic",
+            "xgetbv1",
+            "xsave",
+            "xsavec",
+            "xsaveerptr",
+            "xsaveopt",
+            "xsaves",
+        ];
+        let actual = NodeCaps::supported_features(&cpus);
+        assert_eq!(actual.len(), 129);
         assert_eq!(expected, actual);
     }
 }
