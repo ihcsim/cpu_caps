@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cpu {
     #[serde(rename = "@mode")]
     pub mode: String,
@@ -14,7 +14,7 @@ pub struct Cpu {
     pub feature: Vec<Feature>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Model {
     #[serde(rename = "@fallback")]
     pub fallback: String,
@@ -22,7 +22,7 @@ pub struct Model {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Maxphysaddr {
     #[serde(rename = "@mode")]
     pub mode: String,
@@ -30,7 +30,7 @@ pub struct Maxphysaddr {
     pub limit: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Feature {
     #[serde(rename = "@policy")]
     pub policy: String,

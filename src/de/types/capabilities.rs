@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Capabilities {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -8,7 +8,7 @@ pub struct Capabilities {
     pub guest: Vec<Guest>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Host {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -22,7 +22,7 @@ pub struct Host {
     pub secmodel: Vec<Secmodel>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct HostCpu {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -37,13 +37,13 @@ pub struct HostCpu {
     pub pages: Vec<CpuPages>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Microcode {
     #[serde(rename = "@version")]
     pub version: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Signature {
     #[serde(rename = "@family")]
     pub family: String,
@@ -53,7 +53,7 @@ pub struct Signature {
     pub stepping: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CpuTopology {
     #[serde(rename = "@sockets")]
     pub sockets: String,
@@ -67,7 +67,7 @@ pub struct CpuTopology {
     pub threads: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Maxphysaddr {
     #[serde(rename = "@mode")]
     pub mode: String,
@@ -75,13 +75,13 @@ pub struct Maxphysaddr {
     pub bits: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Feature {
     #[serde(rename = "@name")]
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CpuPages {
     #[serde(rename = "@unit")]
     pub unit: String,
@@ -89,17 +89,17 @@ pub struct CpuPages {
     pub size: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct PowerManagement {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Iommu {
     #[serde(rename = "@support")]
     pub support: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct MigrationFeatures {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -107,25 +107,25 @@ pub struct MigrationFeatures {
     pub uri_transports: UriTransports,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Live {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UriTransports {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub uri_transport: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct HostTopology {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub cells: Cells,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cells {
     #[serde(rename = "@num")]
     pub num: String,
@@ -134,7 +134,7 @@ pub struct Cells {
     pub cell: Cell,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cell {
     #[serde(rename = "@id")]
     pub id: String,
@@ -146,7 +146,7 @@ pub struct Cell {
     pub cpus: Cpus,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Memory {
     #[serde(rename = "@unit")]
     pub unit: String,
@@ -154,7 +154,7 @@ pub struct Memory {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CellPages {
     #[serde(rename = "@unit")]
     pub unit: String,
@@ -164,14 +164,14 @@ pub struct CellPages {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Distances {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub sibling: Sibling,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Sibling {
     #[serde(rename = "@id")]
     pub id: String,
@@ -179,7 +179,7 @@ pub struct Sibling {
     pub value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cpus {
     #[serde(rename = "@num")]
     pub num: String,
@@ -188,7 +188,7 @@ pub struct Cpus {
     pub cpu: Vec<CpusCpu>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct CpusCpu {
     #[serde(rename = "@id")]
     pub id: String,
@@ -204,14 +204,14 @@ pub struct CpusCpu {
     pub siblings: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cache {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub bank: Vec<Bank>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Bank {
     #[serde(rename = "@id")]
     pub id: String,
@@ -227,7 +227,7 @@ pub struct Bank {
     pub cpus: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Secmodel {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -236,7 +236,7 @@ pub struct Secmodel {
     pub baselabel: Option<Vec<Baselabel>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Baselabel {
     #[serde(rename = "@type")]
     pub baselabel_type: String,
@@ -244,7 +244,7 @@ pub struct Baselabel {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Guest {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -253,7 +253,7 @@ pub struct Guest {
     pub features: Features,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct GuestArch {
     #[serde(rename = "@name")]
     pub name: String,
@@ -265,7 +265,7 @@ pub struct GuestArch {
     pub domain: Vec<Domain>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Machine {
     #[serde(rename = "@maxCpus")]
     pub max_cpus: String,
@@ -277,13 +277,13 @@ pub struct Machine {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Domain {
     #[serde(rename = "@type")]
     pub domain_type: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Features {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -298,15 +298,15 @@ pub struct Features {
     pub external_snapshot: ExternalSnapshot,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Pae {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Nonpae {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Acpi {
     #[serde(rename = "@default")]
     pub default: String,
@@ -314,7 +314,7 @@ pub struct Acpi {
     pub toggle: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Apic {
     #[serde(rename = "@default")]
     pub default: String,
@@ -322,15 +322,15 @@ pub struct Apic {
     pub toggle: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cpuselection {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Deviceboot {
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Disksnapshot {
     #[serde(rename = "@default")]
     pub default: String,
@@ -338,7 +338,7 @@ pub struct Disksnapshot {
     pub toggle: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct ExternalSnapshot {
 }
 

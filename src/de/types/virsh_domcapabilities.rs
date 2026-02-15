@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct DomainCapabilities {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -18,19 +18,19 @@ pub struct DomainCapabilities {
     pub features: Features,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Vcpu {
     #[serde(rename = "@max")]
     pub max: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Iothreads {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Os {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -41,7 +41,7 @@ pub struct Os {
     pub loader: Loader,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct OsEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -50,7 +50,7 @@ pub struct OsEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Loader {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -61,7 +61,7 @@ pub struct Loader {
     pub loader_enum: Vec<LoaderEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct LoaderEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -70,14 +70,14 @@ pub struct LoaderEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Cpu {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub mode: Vec<Mode>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Mode {
     #[serde(rename = "@name")]
     pub name: String,
@@ -94,7 +94,7 @@ pub struct Mode {
     pub blockers: Option<Vec<Blockers>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct ModeEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -103,7 +103,7 @@ pub struct ModeEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Model {
     #[serde(rename = "@fallback")]
     pub fallback: Option<String>,
@@ -117,7 +117,7 @@ pub struct Model {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Maxphysaddr {
     #[serde(rename = "@mode")]
     pub mode: String,
