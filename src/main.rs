@@ -1,3 +1,4 @@
+use cpu_caps::CpuCaps;
 use de::types::capabilities::Capabilities;
 use de::types::supported_features::Cpu;
 use de::types::virsh_domcapabilities::DomainCapabilities;
@@ -6,6 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
+mod cpu_caps;
 mod de;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -13,19 +15,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let path = Path::new(filename);
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
-    let _domcap_obj: DomainCapabilities = de::from_reader(buf)?;
+    let domcaps: DomainCapabilities = de::from_reader(buf)?;
 
     let filename = "testdata/capabilities.xml";
     let path = Path::new(filename);
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
-    let _cap_obj: Capabilities = de::from_reader(buf)?;
+    let caps: Capabilities = de::from_reader(buf)?;
 
     let filename = "testdata/supported_features.xml";
     let path = Path::new(filename);
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
-    let _obj: Cpu = de::from_reader(buf)?;
+    let cpu: Cpu = de::from_reader(buf)?;
+
+    let node_names = Vec::new();
+    let _cpu_caps = CpuCaps::new(node_names, &caps, &domcaps, &cpu);
 
     Ok(())
 }
