@@ -1,9 +1,10 @@
 use crate::de::types::{
     capabilities, supported_features, virsh_domcapabilities::DomainCapabilities,
 };
+use std::collections::HashMap;
 
 pub struct CpuCaps {
-    global_caps: Vec<NodeCaps>,
+    global_caps: Vec<String>,
     nodes_caps: Vec<NodeCaps>,
 }
 
@@ -24,8 +25,6 @@ impl CpuCaps {
         virsh_version: &str,
         virt_launcher_version: &str,
     ) -> CpuCaps {
-        let global_caps = Vec::new();
-        let mut nodes_caps = Vec::new();
         let libvirt_data = &LibvirtData {
             caps,
             domcaps,
@@ -34,9 +33,27 @@ impl CpuCaps {
             virt_launcher_version: virt_launcher_version.to_string(),
         };
 
-        for node_name in node_names {
-            nodes_caps.push(NodeCaps::new(node_name, libvirt_data));
+        let mut model_to_nodes = HashMap::new();
+        let mut nodes_caps = Vec::new();
+        for node_name in &node_names {
+            let node_caps = NodeCaps::new(node_name.clone(), libvirt_data);
+            nodes_caps.push(node_caps.clone());
+
+            for model in node_caps.supported_models {
+                model_to_nodes
+                    .entry(model)
+                    .or_insert(Vec::new())
+                    .push(node_caps.node_name.clone());
+            }
         }
+
+        let mut global_caps = Vec::new();
+        for (model, nodes) in model_to_nodes {
+            if nodes.len() == node_names.len() {
+                global_caps.push(model);
+            }
+        }
+
         CpuCaps {
             global_caps,
             nodes_caps,
@@ -44,6 +61,12 @@ impl CpuCaps {
     }
 }
 
+struct GlobalCap {
+    model: String,
+    nodes: Vec<String>,
+}
+
+#[derive(Clone)]
 struct NodeCaps {
     node_name: String,
     host_cpu_model: HostCpuModel,
@@ -94,6 +117,7 @@ impl NodeCaps {
     }
 }
 
+#[derive(Clone)]
 struct HostCpuModel {
     name: String,
     vendor: String,
