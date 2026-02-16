@@ -3,6 +3,49 @@ use crate::de::types::{
 };
 use std::collections::HashMap;
 
+pub fn compute(
+    node_names: Vec<String>,
+    caps: &capabilities::Capabilities,
+    domcaps: &DomainCapabilities,
+    cpu: &supported_features::Cpu,
+    virsh_version: &str,
+    virt_launcher_version: &str,
+) -> CpuCaps {
+    let libvirt_data = &LibvirtData {
+        caps,
+        domcaps,
+        cpu,
+        virsh_version: virsh_version.to_string(),
+        virt_launcher_version: virt_launcher_version.to_string(),
+    };
+
+    let mut model_to_nodes = HashMap::new();
+    let mut nodes_caps = Vec::new();
+    for node_name in &node_names {
+        let node_caps = NodeCaps::new(node_name.clone(), libvirt_data);
+        nodes_caps.push(node_caps.clone());
+
+        for model in node_caps.supported_models {
+            model_to_nodes
+                .entry(model)
+                .or_insert(Vec::new())
+                .push(node_caps.node_name.clone());
+        }
+    }
+
+    let mut global_caps = Vec::new();
+    for (model, nodes) in model_to_nodes {
+        if nodes.len() == node_names.len() {
+            global_caps.push(model);
+        }
+    }
+
+    CpuCaps {
+        global_caps,
+        nodes_caps,
+    }
+}
+
 pub struct CpuCaps {
     global_caps: Vec<String>,
     nodes_caps: Vec<NodeCaps>,
@@ -14,56 +57,6 @@ struct LibvirtData<'a> {
     cpu: &'a supported_features::Cpu,
     virsh_version: String,
     virt_launcher_version: String,
-}
-
-impl CpuCaps {
-    pub fn new(
-        node_names: Vec<String>,
-        caps: &capabilities::Capabilities,
-        domcaps: &DomainCapabilities,
-        cpu: &supported_features::Cpu,
-        virsh_version: &str,
-        virt_launcher_version: &str,
-    ) -> CpuCaps {
-        let libvirt_data = &LibvirtData {
-            caps,
-            domcaps,
-            cpu,
-            virsh_version: virsh_version.to_string(),
-            virt_launcher_version: virt_launcher_version.to_string(),
-        };
-
-        let mut model_to_nodes = HashMap::new();
-        let mut nodes_caps = Vec::new();
-        for node_name in &node_names {
-            let node_caps = NodeCaps::new(node_name.clone(), libvirt_data);
-            nodes_caps.push(node_caps.clone());
-
-            for model in node_caps.supported_models {
-                model_to_nodes
-                    .entry(model)
-                    .or_insert(Vec::new())
-                    .push(node_caps.node_name.clone());
-            }
-        }
-
-        let mut global_caps = Vec::new();
-        for (model, nodes) in model_to_nodes {
-            if nodes.len() == node_names.len() {
-                global_caps.push(model);
-            }
-        }
-
-        CpuCaps {
-            global_caps,
-            nodes_caps,
-        }
-    }
-}
-
-struct GlobalCap {
-    model: String,
-    nodes: Vec<String>,
 }
 
 #[derive(Clone)]

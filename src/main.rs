@@ -1,4 +1,3 @@
-use cpu_caps::CpuCaps;
 use de::types::capabilities::Capabilities;
 use de::types::supported_features::Cpu;
 use de::types::virsh_domcapabilities::DomainCapabilities;
@@ -35,7 +34,7 @@ Using library: libvirt 11.0.0
 Using API: QEMU 11.0.0
 "#;
     let virt_launcher_version = "1.6.3";
-    let _cpu_caps = CpuCaps::new(
+    let _cpu_caps = cpu_caps::compute(
         node_names,
         &caps,
         &domcaps,
