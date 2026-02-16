@@ -1,4 +1,6 @@
-use crate::de::types::{capabilities, supported_features, virsh_domcapabilities};
+use crate::de::types::{
+    capabilities, supported_features, virsh_domcapabilities::DomainCapabilities,
+};
 
 pub struct CpuCaps {
     global_caps: Vec<NodeCaps>,
@@ -7,7 +9,7 @@ pub struct CpuCaps {
 
 struct LibvirtData<'a> {
     caps: &'a capabilities::Capabilities,
-    domcaps: &'a virsh_domcapabilities::DomainCapabilities,
+    domcaps: &'a DomainCapabilities,
     cpu: &'a supported_features::Cpu,
     virsh_version: String,
     virt_launcher_version: String,
@@ -17,7 +19,7 @@ impl CpuCaps {
     pub fn new(
         node_names: Vec<String>,
         caps: &capabilities::Capabilities,
-        domcaps: &virsh_domcapabilities::DomainCapabilities,
+        domcaps: &DomainCapabilities,
         cpu: &supported_features::Cpu,
         virsh_version: &str,
         virt_launcher_version: &str,
@@ -55,11 +57,7 @@ impl NodeCaps {
     fn new(node_name: String, libvirt_data: &LibvirtData) -> NodeCaps {
         NodeCaps {
             node_name,
-            host_cpu_model: HostCpuModel {
-                name: String::new(),
-                vendor: String::new(),
-                required_features: Vec::new(),
-            },
+            host_cpu_model: HostCpuModel::new(libvirt_data.domcaps),
             supported_features: NodeCaps::supported_features(libvirt_data.cpu),
             supported_models: NodeCaps::supported_models(libvirt_data.domcaps),
             virsh_version: libvirt_data.virsh_version.clone(),
@@ -77,7 +75,7 @@ impl NodeCaps {
         supported_features
     }
 
-    fn supported_models(domcaps: &virsh_domcapabilities::DomainCapabilities) -> Vec<String> {
+    fn supported_models(domcaps: &DomainCapabilities) -> Vec<String> {
         let mut supported_models = Vec::new();
         for mode in &domcaps.cpu.mode {
             if let Some(models) = &mode.model {
@@ -100,6 +98,60 @@ struct HostCpuModel {
     name: String,
     vendor: String,
     required_features: Vec<String>,
+}
+
+impl HostCpuModel {
+    fn new(domcaps: &DomainCapabilities) -> HostCpuModel {
+        let mode = domcaps
+            .cpu
+            .mode
+            .iter()
+            .find(|mode| mode.name == "host-model");
+
+        let (name, vendor) = match mode {
+            Some(mode) => {
+                let mut model = "".to_string();
+                if let Some(models) = &mode.model
+                    && !models.is_empty()
+                    && let Some(v) = &models[0].text
+                {
+                    model = v.clone()
+                };
+
+                let vendor = match &mode.vendor {
+                    Some(v) => v.clone(),
+                    None => "".to_string(),
+                };
+
+                (model, vendor)
+            }
+            None => ("".to_string(), "".to_string()),
+        };
+
+        HostCpuModel {
+            name,
+            vendor,
+            required_features: HostCpuModel::required_features(domcaps),
+        }
+    }
+
+    fn required_features(domcaps: &DomainCapabilities) -> Vec<String> {
+        let mode = domcaps
+            .cpu
+            .mode
+            .iter()
+            .find(|model| model.name == "host-model");
+        if let Some(mode) = mode
+            && let Some(features) = &mode.feature
+        {
+            return features
+                .iter()
+                .filter(|feature| feature.policy == "require")
+                .map(|feature| feature.name.clone())
+                .collect();
+        }
+        Vec::new()
+    }
 }
 
 static OBSOLETE_CPU_MODELS: [&str; 34] = [
@@ -149,16 +201,16 @@ mod test {
     use std::io::BufReader;
     use std::path::Path;
 
-    use super::NodeCaps;
+    use super::{HostCpuModel, NodeCaps};
     use crate::de;
-    use crate::de::types::{supported_features, virsh_domcapabilities};
+    use crate::de::types::{supported_features::Cpu, virsh_domcapabilities::DomainCapabilities};
 
     #[test]
     fn test_supported_models() {
         let path = Path::new("testdata").join("virsh_domcapabilities.xml");
         let raw = fs::read_to_string(path).unwrap();
         let reader = BufReader::new(raw.as_bytes());
-        let domcaps: virsh_domcapabilities::DomainCapabilities = de::from_reader(reader).unwrap();
+        let domcaps: DomainCapabilities = de::from_reader(reader).unwrap();
         let expected = vec![
             "Denverton-v2",
             "Denverton-v3",
@@ -207,7 +259,7 @@ mod test {
         let path = Path::new("testdata").join("supported_features.xml");
         let raw = fs::read_to_string(path).unwrap();
         let reader = BufReader::new(raw.as_bytes());
-        let cpus: supported_features::Cpu = de::from_reader(reader).unwrap();
+        let cpus: Cpu = de::from_reader(reader).unwrap();
         let expected = vec![
             "3dnowprefetch",
             "abm",
@@ -341,6 +393,55 @@ mod test {
         ];
         let actual = NodeCaps::supported_features(&cpus);
         assert_eq!(actual.len(), 129);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_host_model_name_and_vendor() {
+        let path = Path::new("testdata").join("virsh_domcapabilities.xml");
+        let raw = fs::read_to_string(path).unwrap();
+        let reader = BufReader::new(raw.as_bytes());
+        let domcaps: DomainCapabilities = de::from_reader(reader).unwrap();
+        let host_cpu_model = HostCpuModel::new(&domcaps);
+        assert_eq!(host_cpu_model.name, "EPYC-Genoa");
+        assert_eq!(host_cpu_model.vendor, "AMD");
+    }
+
+    #[test]
+    fn test_host_model_required_features() {
+        let path = Path::new("testdata").join("virsh_domcapabilities.xml");
+        let raw = fs::read_to_string(path).unwrap();
+        let reader = BufReader::new(raw.as_bytes());
+        let domcaps: DomainCapabilities = de::from_reader(reader).unwrap();
+        let expected = vec![
+            "x2apic",
+            "tsc-deadline",
+            "hypervisor",
+            "tsc_adjust",
+            "spec-ctrl",
+            "stibp",
+            "arch-capabilities",
+            "ssbd",
+            "cmp_legacy",
+            "overflow-recov",
+            "succor",
+            "virt-ssbd",
+            "lbrv",
+            "tsc-scale",
+            "vmcb-clean",
+            "flushbyasid",
+            "pause-filter",
+            "pfthreshold",
+            "vgif",
+            "rdctl-no",
+            "skip-l1dfl-vmentry",
+            "mds-no",
+            "pschange-mc-no",
+            "gds-no",
+            "rfds-no",
+        ];
+        let actual = HostCpuModel::required_features(&domcaps);
+        assert_eq!(actual.len(), 25);
         assert_eq!(expected, actual);
     }
 }
