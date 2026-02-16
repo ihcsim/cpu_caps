@@ -9,6 +9,8 @@ struct LibvirtData<'a> {
     caps: &'a capabilities::Capabilities,
     domcaps: &'a virsh_domcapabilities::DomainCapabilities,
     cpu: &'a supported_features::Cpu,
+    virsh_version: String,
+    virt_launcher_version: String,
 }
 
 impl CpuCaps {
@@ -17,10 +19,18 @@ impl CpuCaps {
         caps: &capabilities::Capabilities,
         domcaps: &virsh_domcapabilities::DomainCapabilities,
         cpu: &supported_features::Cpu,
+        virsh_version: &str,
+        virt_launcher_version: &str,
     ) -> CpuCaps {
         let global_caps = Vec::new();
         let mut nodes_caps = Vec::new();
-        let libvirt_data = &LibvirtData { caps, domcaps, cpu };
+        let libvirt_data = &LibvirtData {
+            caps,
+            domcaps,
+            cpu,
+            virsh_version: virsh_version.to_string(),
+            virt_launcher_version: virt_launcher_version.to_string(),
+        };
 
         for node_name in node_names {
             nodes_caps.push(NodeCaps::new(node_name, libvirt_data));
@@ -52,8 +62,8 @@ impl NodeCaps {
             },
             supported_features: NodeCaps::supported_features(libvirt_data.cpu),
             supported_models: NodeCaps::supported_models(libvirt_data.domcaps),
-            virsh_version: String::new(),
-            virt_launcher_version: String::new(),
+            virsh_version: libvirt_data.virsh_version.clone(),
+            virt_launcher_version: libvirt_data.virt_launcher_version.clone(),
         }
     }
 

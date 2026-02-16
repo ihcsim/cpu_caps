@@ -30,7 +30,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cpu: Cpu = de::from_reader(buf)?;
 
     let node_names = Vec::new();
-    let _cpu_caps = CpuCaps::new(node_names, &caps, &domcaps, &cpu);
+    let virsh_version = r#"Compiled against library: libvirt 11.0.0
+Using library: libvirt 11.0.0
+Using API: QEMU 11.0.0
+"#;
+    let virt_launcher_version = "1.6.3";
+    let _cpu_caps = CpuCaps::new(
+        node_names,
+        &caps,
+        &domcaps,
+        &cpu,
+        virsh_version,
+        virt_launcher_version,
+    );
 
     Ok(())
 }
