@@ -75,6 +75,7 @@ impl NodeCaps {
                     if let Some(model_name) = &model.text
                         && let Some(usable) = &model.usable
                         && usable == "yes"
+                        && !is_obsolete_model(model_name)
                     {
                         supported_models.push(model_name.clone());
                     }
@@ -89,6 +90,47 @@ struct HostCpuModel {
     name: String,
     vendor: String,
     required_features: Vec<String>,
+}
+
+static OBSOLETE_CPU_MODELS: [&str; 34] = [
+    "486",
+    "486-v1",
+    "pentium",
+    "pentium-v1",
+    "pentium2",
+    "pentium2-v1",
+    "pentium3",
+    "pentium3-v1",
+    "pentiumpro",
+    "pentiumpro-v1",
+    "coreduo",
+    "coreduo-v1",
+    "n270",
+    "n270-v1",
+    "core2duo",
+    "core2duo-v1",
+    "Conroe",
+    "Conroe-v1",
+    "athlon",
+    "athlon-v1",
+    "phenom",
+    "phenom-v1",
+    "qemu64",
+    "qemu64-v1",
+    "qemu32",
+    "qemu32-v1",
+    "kvm64",
+    "kvm64-v1",
+    "kvm32",
+    "kvm32-v1",
+    "Opteron_G1",
+    "Opteron_G1-v1",
+    "Opteron_G2",
+    "Opteron_G2-v1",
+];
+
+fn is_obsolete_model(cpu_model: &str) -> bool {
+    OBSOLETE_CPU_MODELS.contains(&cpu_model)
 }
 
 #[cfg(test)]
@@ -108,10 +150,6 @@ mod test {
         let reader = BufReader::new(raw.as_bytes());
         let domcaps: virsh_domcapabilities::DomainCapabilities = de::from_reader(reader).unwrap();
         let expected = vec![
-            "486",
-            "486-v1",
-            "Conroe",
-            "Conroe-v1",
             "Denverton-v2",
             "Denverton-v3",
             "Dhyana",
@@ -136,10 +174,6 @@ mod test {
             "Nehalem-IBRS",
             "Nehalem-v1",
             "Nehalem-v2",
-            "Opteron_G1",
-            "Opteron_G1-v1",
-            "Opteron_G2",
-            "Opteron_G2-v1",
             "Opteron_G3",
             "Opteron_G3-v1",
             "Penryn",
@@ -152,23 +186,9 @@ mod test {
             "Westmere-IBRS",
             "Westmere-v1",
             "Westmere-v2",
-            "kvm32",
-            "kvm32-v1",
-            "kvm64",
-            "kvm64-v1",
-            "pentium",
-            "pentium-v1",
-            "pentium2",
-            "pentium2-v1",
-            "pentium3",
-            "pentium3-v1",
-            "qemu32",
-            "qemu32-v1",
-            "qemu64",
-            "qemu64-v1",
         ];
         let actual = NodeCaps::supported_models(&domcaps);
-        assert_eq!(actual.len(), 58);
+        assert_eq!(actual.len(), 36);
         assert_eq!(expected, actual);
     }
 
