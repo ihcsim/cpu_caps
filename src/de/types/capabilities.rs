@@ -90,8 +90,7 @@ pub struct CpuPages {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct PowerManagement {
-}
+pub struct PowerManagement {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Iommu {
@@ -108,8 +107,7 @@ pub struct MigrationFeatures {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Live {
-}
+pub struct Live {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UriTransports {
@@ -299,12 +297,10 @@ pub struct Features {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Pae {
-}
+pub struct Pae {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Nonpae {
-}
+pub struct Nonpae {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Acpi {
@@ -323,12 +319,10 @@ pub struct Apic {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Cpuselection {
-}
+pub struct Cpuselection {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct Deviceboot {
-}
+pub struct Deviceboot {}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Disksnapshot {
@@ -339,6 +333,4 @@ pub struct Disksnapshot {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-pub struct ExternalSnapshot {
-}
-
+pub struct ExternalSnapshot {}

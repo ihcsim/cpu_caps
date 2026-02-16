@@ -511,4 +511,3 @@ pub struct LaunchSecurity {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
-

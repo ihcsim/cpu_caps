@@ -37,4 +37,3 @@ pub struct Feature {
     #[serde(rename = "@name")]
     pub name: String,
 }
-
