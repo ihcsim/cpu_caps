@@ -10,31 +10,28 @@ mod cpu_caps;
 mod de;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let filename = "testdata/virsh_domcapabilities.xml";
-    let path = Path::new(filename);
+    let path = Path::new("testdata").join("virsh_domcapabilities.xml");
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
     let domcaps: DomainCapabilities = de::from_reader(buf)?;
 
-    let filename = "testdata/capabilities.xml";
-    let path = Path::new(filename);
+    let path = Path::new("testdata").join("capabilities.xml");
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
     let caps: Capabilities = de::from_reader(buf)?;
 
-    let filename = "testdata/supported_features.xml";
-    let path = Path::new(filename);
+    let path = Path::new("testdata").join("supported_features.xml");
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
     let cpu: Cpu = de::from_reader(buf)?;
 
-    let node_names = Vec::new();
+    let node_names = vec!["isim-dev"];
     let virsh_version = r#"Compiled against library: libvirt 11.0.0
 Using library: libvirt 11.0.0
 Using API: QEMU 11.0.0
 "#;
     let virt_launcher_version = "1.6.3";
-    let _cpu_caps = cpu_caps::compute(
+    let cpu_caps = cpu_caps::compute(
         node_names,
         &caps,
         &domcaps,
@@ -43,5 +40,7 @@ Using API: QEMU 11.0.0
         virt_launcher_version,
     );
 
+    let output = cpu_caps.to_yaml()?;
+    println!("{}", output);
     Ok(())
 }

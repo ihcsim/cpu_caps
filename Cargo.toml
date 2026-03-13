@@ -11,3 +11,4 @@ quick-xml = { version = "0.39.0", features = [
   "overlapped-lists",
 ] }
 serde = { version = "1.0.228", features = ["derive"] }
+serde_yaml_ng = "0.10.0"

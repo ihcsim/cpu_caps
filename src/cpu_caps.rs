@@ -1,10 +1,11 @@
 use crate::de::types::{
     capabilities, supported_features, virsh_domcapabilities::DomainCapabilities,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub fn compute(
-    node_names: Vec<String>,
+    node_names: Vec<&str>,
     caps: &capabilities::Capabilities,
     domcaps: &DomainCapabilities,
     cpu: &supported_features::Cpu,
@@ -22,7 +23,7 @@ pub fn compute(
     let mut model_to_nodes = HashMap::new();
     let mut nodes_caps = Vec::new();
     for node_name in &node_names {
-        let node_caps = NodeCaps::new(node_name.clone(), libvirt_data);
+        let node_caps = NodeCaps::new(node_name.to_string(), libvirt_data);
         nodes_caps.push(node_caps.clone());
 
         for model in node_caps.supported_models {
@@ -46,9 +47,16 @@ pub fn compute(
     }
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct CpuCaps {
     global_caps: Vec<String>,
     nodes_caps: Vec<NodeCaps>,
+}
+
+impl CpuCaps {
+    pub fn to_yaml(&self) -> Result<String, serde_yaml_ng::Error> {
+        serde_yaml_ng::to_string(self)
+    }
 }
 
 struct LibvirtData<'a> {
@@ -59,7 +67,7 @@ struct LibvirtData<'a> {
     virt_launcher_version: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct NodeCaps {
     node_name: String,
     host_cpu_model: HostCpuModel,
@@ -110,7 +118,7 @@ impl NodeCaps {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct HostCpuModel {
     name: String,
     vendor: String,
@@ -218,9 +226,228 @@ mod test {
     use std::io::BufReader;
     use std::path::Path;
 
-    use super::{HostCpuModel, NodeCaps};
+    use super::*;
     use crate::de;
     use crate::de::types::{supported_features::Cpu, virsh_domcapabilities::DomainCapabilities};
+    use std::fs::File;
+
+    #[test]
+    fn test_compute_one_node() {
+        let path = Path::new("testdata").join("virsh_domcapabilities.xml");
+        let xml_file = File::open(path).unwrap();
+        let buf = BufReader::new(xml_file);
+        let domcaps: DomainCapabilities = de::from_reader(buf).unwrap();
+
+        let path = Path::new("testdata").join("capabilities.xml");
+        let xml_file = File::open(path).unwrap();
+        let buf = BufReader::new(xml_file);
+        let caps: capabilities::Capabilities = de::from_reader(buf).unwrap();
+
+        let path = Path::new("testdata").join("supported_features.xml");
+        let xml_file = File::open(path).unwrap();
+        let buf = BufReader::new(xml_file);
+        let cpu: Cpu = de::from_reader(buf).unwrap();
+
+        let node_names = vec!["isim-dev"];
+        let virsh_version = r#"Compiled against library: libvirt 11.0.0
+Using library: libvirt 11.0.0
+Using API: QEMU 11.0.0
+"#;
+        let virt_launcher_version = "1.6.3";
+        let mut cpu_caps = compute(
+            node_names,
+            &caps,
+            &domcaps,
+            &cpu,
+            virsh_version,
+            virt_launcher_version,
+        );
+
+        let mut expected_supported_models = vec![
+            "Denverton-v2",
+            "Denverton-v3",
+            "Dhyana",
+            "Dhyana-v1",
+            "Dhyana-v2",
+            "EPYC",
+            "EPYC-IBPB",
+            "EPYC-Rome",
+            "EPYC-Rome-v1",
+            "EPYC-Rome-v2",
+            "EPYC-Rome-v3",
+            "EPYC-Rome-v4",
+            "EPYC-v1",
+            "EPYC-v2",
+            "EPYC-v3",
+            "EPYC-v4",
+            "IvyBridge",
+            "IvyBridge-IBRS",
+            "IvyBridge-v1",
+            "IvyBridge-v2",
+            "Nehalem",
+            "Nehalem-IBRS",
+            "Nehalem-v1",
+            "Nehalem-v2",
+            "Opteron_G3",
+            "Opteron_G3-v1",
+            "Penryn",
+            "Penryn-v1",
+            "SandyBridge",
+            "SandyBridge-IBRS",
+            "SandyBridge-v1",
+            "SandyBridge-v2",
+            "Westmere",
+            "Westmere-IBRS",
+            "Westmere-v1",
+            "Westmere-v2",
+        ];
+        let mut expected_supported_features = vec![
+            "3dnowprefetch",
+            "abm",
+            "adx",
+            "aes",
+            "amd-psfd",
+            "amd-ssbd",
+            "amd-stibp",
+            "apic",
+            "arat",
+            "arch-capabilities",
+            "avx",
+            "avx2",
+            "avx512-bf16",
+            "avx512-vpopcntdq",
+            "avx512bitalg",
+            "avx512bw",
+            "avx512cd",
+            "avx512dq",
+            "avx512f",
+            "avx512ifma",
+            "avx512vbmi",
+            "avx512vbmi2",
+            "avx512vl",
+            "avx512vnni",
+            "bmi1",
+            "bmi2",
+            "clflush",
+            "clflushopt",
+            "clwb",
+            "clzero",
+            "cmov",
+            "cmp_legacy",
+            "cr8legacy",
+            "cx16",
+            "cx8",
+            "de",
+            "erms",
+            "f16c",
+            "flushbyasid",
+            "fma",
+            "fpu",
+            "fsgsbase",
+            "fsrm",
+            "fxsr",
+            "fxsr_opt",
+            "gds-no",
+            "gfni",
+            "hypervisor",
+            "ibpb",
+            "ibrs",
+            "invpcid",
+            "lahf_lm",
+            "lbrv",
+            "lfence-always-serializing",
+            "lm",
+            "mca",
+            "mce",
+            "mds-no",
+            "misalignsse",
+            "mmx",
+            "mmxext",
+            "movbe",
+            "msr",
+            "mtrr",
+            "no-nested-data-bp",
+            "npt",
+            "nrip-save",
+            "null-sel-clr-base",
+            "nx",
+            "osvw",
+            "overflow-recov",
+            "pae",
+            "pat",
+            "pause-filter",
+            "pclmuldq",
+            "pdpe1gb",
+            "perfctr_core",
+            "pfthreshold",
+            "pge",
+            "pku",
+            "pni",
+            "popcnt",
+            "pschange-mc-no",
+            "pse",
+            "pse36",
+            "rdctl-no",
+            "rdpid",
+            "rdrand",
+            "rdseed",
+            "rdtscp",
+            "rfds-no",
+            "sep",
+            "sha-ni",
+            "skip-l1dfl-vmentry",
+            "smap",
+            "smep",
+            "spec-ctrl",
+            "ssbd",
+            "sse",
+            "sse2",
+            "sse4.1",
+            "sse4.2",
+            "sse4a",
+            "ssse3",
+            "stibp",
+            "stibp-always-on",
+            "succor",
+            "svm",
+            "svme-addr-chk",
+            "syscall",
+            "tsc",
+            "tsc-deadline",
+            "tsc-scale",
+            "tsc_adjust",
+            "umip",
+            "vaes",
+            "vgif",
+            "virt-ssbd",
+            "vmcb-clean",
+            "vme",
+            "vpclmulqdq",
+            "wbnoinvd",
+            "x2apic",
+            "xgetbv1",
+            "xsave",
+            "xsavec",
+            "xsaveerptr",
+            "xsaveopt",
+            "xsaves",
+        ];
+        let expected_host_cpu_model = HostCpuModel::new(&domcaps);
+
+        expected_supported_features.sort();
+        expected_supported_models.sort();
+
+        let node_caps = cpu_caps.nodes_caps.last().unwrap();
+        assert_eq!(node_caps.node_name, "isim-dev");
+        assert_eq!(node_caps.host_cpu_model, expected_host_cpu_model);
+        assert_eq!(node_caps.supported_features, expected_supported_features);
+        assert_eq!(node_caps.supported_models, expected_supported_models);
+        assert_eq!(node_caps.virsh_version, virsh_version);
+        assert_eq!(node_caps.virt_launcher_version, virt_launcher_version);
+
+        cpu_caps.global_caps.sort();
+        assert_eq!(cpu_caps.global_caps, expected_supported_models);
+    }
 
     #[test]
     fn test_supported_models() {
