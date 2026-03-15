@@ -19,3 +19,14 @@ xml_to_rs:
 
 tools:
 	cargo install -f xml_schema_generator --features="env_logger"
+
+kind:
+	kind create cluster --name dev --config=./kind.yaml
+
+purge:
+	kind delete cluster --name dev
+
+kubevirt:
+	VERSION=$$(curl -s https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt) ;\
+	kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/$${VERSION}/kubevirt-operator.yaml" ;\
+	kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/$${VERSION}/kubevirt-cr.yaml"
