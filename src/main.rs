@@ -9,7 +9,7 @@ use std::path::Path;
 use k8s_openapi::api::core::v1::Pod;
 use kube::{
     Client,
-    api::{Api, ListParams},
+    api::{Api, ListParams, Patch, PatchParams},
 };
 
 mod cpu_caps;
@@ -19,6 +19,22 @@ mod de;
 async fn main() -> Result<(), Box<dyn Error>> {
     let ns = "kubevirt";
     let selector = "kubevirt.io=virt-handler";
+
+    let patch_params = PatchParams::default();
+    let patch_ephemeral_containers = serde_json::json!({
+        "spec": {
+            "ephemeralContainers": [
+                {
+                    "name": "virt-handler-debugger",
+                    "image": "busybox:latest",
+                    "command": ["sleep", "3600"],
+                    "securityContext": {
+                        "privileged": true
+                    }
+                }
+            ]
+        }
+    });
 
     let k8s_client = Client::try_default().await?;
     let pods: Api<Pod> = Api::namespaced(k8s_client, ns);
@@ -33,12 +49,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         {
             continue;
         }
-
         let pod_name = match pod.metadata.name {
             Some(name) => name,
             None => continue,
         };
-
         let spec = match pod.spec {
             Some(spec) => spec,
             None => continue,
@@ -47,10 +61,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Some(node_name) => node_name,
             None => continue,
         };
-        println!(
-            "Found virt-handler pod: {} on node: {}",
-            pod_name, node_name
-        );
+
+        println!("patching pod {} on node {}", pod_name, node_name);
+        if let Err(e) = pods
+            .patch_ephemeral_containers(
+                pod_name.as_str(),
+                &patch_params,
+                &Patch::Strategic(&patch_ephemeral_containers),
+            )
+            .await
+        {
+            println!("failed to patch pod {}: {}", pod_name, e);
+        };
     }
 
     let path = Path::new("testdata").join("virsh_domcapabilities.xml");
