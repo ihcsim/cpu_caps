@@ -3,7 +3,7 @@ use de::types::supported_features::Cpu;
 use de::types::virsh_domcapabilities::DomainCapabilities;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Cursor};
+use std::io::{self, BufReader};
 use std::path::Path;
 
 use k8s_openapi::api::core::v1::Pod;
@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let virt_handler_selector = "kubevirt.io=virt-handler";
     let debugger_image = "quay.io/kubevirt/virt-launcher:v1.7.1";
     let debugger_ttl_seconds = 3600;
-    patch_virt_handler_with_debugger(
+    inject_debuggers(
         virt_handler_namespace,
         virt_handler_selector,
         debugger_image,
@@ -29,18 +29,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )
     .await?;
 
-    let buf = serialize_to_yaml()?;
-    println!("{}", buf.get_ref().get_ref());
+    out_yaml(&mut io::stdout())?;
     Ok(())
 }
 
-async fn patch_virt_handler_with_debugger(
+async fn inject_debuggers(
     virt_handler_namespace: &str,
     virt_handler_selector: &str,
     debugger_image: &str,
     debugger_ttl_seconds: u64,
 ) -> Result<(), Box<dyn Error>> {
-    let debugger_container_name = "virt-handler-debugger4";
+    let debugger_container_name = "virt-handler-debugger7";
     let patch_ephemeral_containers = serde_json::json!({
         "spec": {
             "ephemeralContainers": [
@@ -57,11 +56,11 @@ async fn patch_virt_handler_with_debugger(
                         "/bin/bash",
                         "-c",
                         "set -xe
-                        mkdir -p /var/lib/kubevirt-node-labeller
-                        node-labeller.sh
-                        virsh version > /var/lib/kubevirt-node-labeller/.version
-                        touch /var/lib/kubevirt-node-labeller/.done
-                        sleep ${CONTAINER_TTL_SECONDS:-3600}"
+mkdir -p /var/lib/kubevirt-node-labeller
+node-labeller.sh
+virsh version > /var/lib/kubevirt-node-labeller/.version
+touch /var/lib/kubevirt-node-labeller/.done
+sleep ${CONTAINER_TTL_SECONDS:-3600}"
                     ],
                     "securityContext": {
                         "privileged": true
@@ -111,7 +110,7 @@ async fn patch_virt_handler_with_debugger(
     Ok(())
 }
 
-fn serialize_to_yaml() -> Result<BufReader<Cursor<String>>, Box<dyn Error>> {
+fn out_yaml<W: io::Write>(out: &mut W) -> Result<(), Box<dyn Error>> {
     let path = Path::new("testdata").join("virsh_domcapabilities.xml");
     let xml_file = File::open(path)?;
     let buf = BufReader::new(xml_file);
@@ -143,6 +142,8 @@ Using API: QEMU 11.0.0
     );
 
     let output = cpu_caps.to_yaml()?;
-    let cursor = Cursor::new(output);
-    Ok(BufReader::new(cursor))
+    if let Err(e) = out.write_all(output.as_bytes()) {
+        return Err(Box::new(e));
+    };
+    Ok(())
 }
