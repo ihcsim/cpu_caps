@@ -17,26 +17,52 @@ mod de;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let ns = "kubevirt";
-    let selector = "kubevirt.io=virt-handler";
-    patch_virt_handler_with_debugger(ns, selector).await?;
+    let virt_handler_namespace = "kubevirt";
+    let virt_handler_selector = "kubevirt.io=virt-handler";
+    let debugger_image = "quay.io/kubevirt/virt-launcher:v1.7.1";
+    let debugger_ttl_seconds = 3600;
+    patch_virt_handler_with_debugger(
+        virt_handler_namespace,
+        virt_handler_selector,
+        debugger_image,
+        debugger_ttl_seconds,
+    )
+    .await?;
+
     let buf = serialize_to_yaml()?;
     println!("{}", buf.get_ref().get_ref());
     Ok(())
 }
 
 async fn patch_virt_handler_with_debugger(
-    namespace: &str,
-    selector: &str,
+    virt_handler_namespace: &str,
+    virt_handler_selector: &str,
+    debugger_image: &str,
+    debugger_ttl_seconds: u64,
 ) -> Result<(), Box<dyn Error>> {
-    let patch_params = PatchParams::default();
+    let debugger_container_name = "virt-handler-debugger4";
     let patch_ephemeral_containers = serde_json::json!({
         "spec": {
             "ephemeralContainers": [
                 {
-                    "name": "virt-handler-debugger3",
-                    "image": "busybox:latest",
-                    "command": ["sleep", "3600"],
+                    "name": debugger_container_name,
+                    "image": debugger_image,
+                    "env": [
+                        {
+                            "name": "CONTAINER_TTL_SECONDS",
+                            "value": debugger_ttl_seconds.to_string().as_str(),
+                        }
+                    ],
+                    "command": [
+                        "/bin/bash",
+                        "-c",
+                        "set -xe
+                        mkdir -p /var/lib/kubevirt-node-labeller
+                        node-labeller.sh
+                        virsh version > /var/lib/kubevirt-node-labeller/.version
+                        touch /var/lib/kubevirt-node-labeller/.done
+                        sleep ${CONTAINER_TTL_SECONDS:-3600}"
+                    ],
                     "securityContext": {
                         "privileged": true
                     }
@@ -46,8 +72,8 @@ async fn patch_virt_handler_with_debugger(
     });
 
     let k8s_client = Client::try_default().await?;
-    let pods: Api<Pod> = Api::namespaced(k8s_client, namespace);
-    let list_params = ListParams::default().labels(selector);
+    let pods: Api<Pod> = Api::namespaced(k8s_client, virt_handler_namespace);
+    let list_params = ListParams::default().labels(virt_handler_selector);
     for pod in pods.list(&list_params).await? {
         let phase = match pod.status {
             Some(status) => status.phase.unwrap_or_else(|| "".to_string()),
@@ -68,6 +94,7 @@ async fn patch_virt_handler_with_debugger(
         }
 
         println!("patching pod {} on node {}", pod_name, node_name);
+        let patch_params = PatchParams::default();
         if let Err(e) = pods
             .patch_ephemeral_containers(
                 pod_name.as_str(),
