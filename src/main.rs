@@ -11,6 +11,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio_util::io::ReaderStream;
 
 mod cpu_caps;
@@ -20,7 +21,8 @@ mod de;
 async fn main() -> Result<(), Box<dyn Error>> {
     let kubevirt_ns = "kubevirt".to_string();
     let selector = "kubevirt.io=virt-handler";
-    let debugger_name = "virt-handler-debugger4";
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    let debugger_name = format!("debuggger-{}", timestamp);
     let debugger_image = "quay.io/kubevirt/virt-launcher:v1.7.1".to_string();
     let debugger_ttl_seconds = 3600;
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
@@ -37,7 +39,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     api.inject_debuggers().await?;
     api.wait_for_debuggers().await?;
     api.copy_from_debuggers().await?;
-    out_yaml(&mut io::stdout())?;
+    out_yaml(&mut io::sink())?;
     Ok(())
 }
 
@@ -46,7 +48,7 @@ struct K8sApi<'a> {
     selector: &'a str,
     src_path: PathBuf,
 
-    debugger_name: &'a str,
+    debugger_name: String,
     debugger_image: String,
     debugger_ttl_seconds: u64,
 }
@@ -56,7 +58,7 @@ impl<'a> K8sApi<'a> {
         ns: String,
         src_path: PathBuf,
         selector: &'a str,
-        debugger_name: &'a str,
+        debugger_name: String,
         debugger_image: String,
         debugger_ttl_seconds: u64,
     ) -> Result<K8sApi<'a>, Box<dyn Error>> {
@@ -109,25 +111,28 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
 
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
+            let pod_name = pod.metadata.name.as_deref().unwrap_or("");
             let phase = match &pod.status {
                 Some(status) => status.phase.as_deref().unwrap_or(""),
                 None => continue,
             };
             if phase != "Running" {
+                println!("patching: skipping non-running pod {}", pod_name);
                 continue;
             }
-
-            let pod_name = pod.metadata.name.as_deref().unwrap_or("");
             let node_name = match &pod.spec {
                 Some(spec) => spec.node_name.as_deref().unwrap_or(""),
                 None => continue,
             };
             if pod_name.is_empty() || node_name.is_empty() {
-                println!("skipping pod with missing name or node");
+                println!("patching: skipping pod with missing name or node");
                 continue;
             }
 
-            println!("patching: pod {}, node {}", pod_name, node_name);
+            println!(
+                "patching: pod {} node {} container {}",
+                pod_name, node_name, self.debugger_name
+            );
             let patch_params = PatchParams::default();
             if let Err(e) = self
                 .pods
@@ -141,10 +146,6 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 println!("failed to patch pod {}: {}", pod_name, e);
                 return Err(Box::new(e));
             };
-            println!(
-                "patched: pod {}, node {}, container {}",
-                pod_name, node_name, self.debugger_name
-            );
         }
         Ok(())
     }
@@ -171,23 +172,37 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                         })
                     {
                         let attach_params = AttachParams::default()
-                            .container(self.debugger_name)
+                            .container(&self.debugger_name)
                             .stdout(true)
                             .stderr(true);
                         let exec_cmds = vec![
                             "/bin/bash",
                             "-c",
-                            "while [ ! -f ${ROOT_PATH}/.done ]; do sleep 1; done",
+                            r#"while [ ! -f ${ROOT_PATH}/.done ]; do echo "${ROOT_PATH}"/.done is not ready; sleep 1; done"#,
                         ];
-                        let _attached = self.pods.exec(pod_name, exec_cmds, &attach_params).await?;
-                        println!(
-                            "completed: pod {} container {}",
-                            pod_name, self.debugger_name
-                        );
+                        let mut attached =
+                            self.pods.exec(pod_name, exec_cmds, &attach_params).await?;
+                        if let Some(stderr) = attached.stderr()
+                            && let Some(result) = ReaderStream::new(stderr).next().await
+                        {
+                            if let Ok(bytes) = result {
+                                println!("waiting: stderr: {:?}", bytes);
+                            } else if let Err(e) = result {
+                                return Err(Box::new(e));
+                            }
+                        }
+                        if let Some(stderr) = attached.stdout()
+                            && let Some(result) = ReaderStream::new(stderr).next().await
+                        {
+                            if let Ok(bytes) = result {
+                                println!("waiting: stdout: {:?}", bytes);
+                            } else if let Err(e) = result {
+                                return Err(Box::new(e));
+                            }
+                        }
 
                         total_waits += 1;
                         if total_waits >= total_pods {
-                            println!("all debug containers are ready");
                             break;
                         }
                     }
@@ -210,36 +225,31 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 "attaching: pod {}, containar {}, path {} ",
                 pod_name, self.debugger_name, src_path
             );
-            let exec_cmds = vec!["tar", "czvf", "output.tar.gz", src_path];
 
+            let tar_cmd = format!("tar -C {} -czO .", src_path);
+            let exec_cmds = vec!["/bin/bash", "-c", tar_cmd.as_str()];
             let attach_params = AttachParams::default()
-                .container(self.debugger_name)
+                .container(&self.debugger_name)
                 .stdout(true)
                 .stderr(true);
             let mut attached = self.pods.exec(pod_name, exec_cmds, &attach_params).await?;
-            if attached.stdout().is_none() {
-                println!("no stdout output for pod {}", pod_name);
-                continue;
-            }
+            if let Some(stdout) = attached.stdout() {
+                let mut stream = ReaderStream::new(stdout);
+                let mut stream_contents = Vec::new();
+                while let Some(chunk) = stream.next().await {
+                    stream_contents.extend_from_slice(&chunk?);
+                }
 
+                let file_name = format!("{}.tar.gz", pod_name);
+                println!("attaching: writing output to file {}", file_name);
+                let mut file = File::create(file_name)?;
+                file.write_all(&stream_contents)?;
+            }
             if let Some(stderr) = attached.stderr()
                 && let Some(result) = ReaderStream::new(stderr).next().await
             {
                 if let Ok(bytes) = result {
-                    println!("attached: stderr: {:?}", bytes);
-                } else if let Err(e) = result {
-                    return Err(Box::new(e));
-                }
-            }
-
-            if let Some(stdout) = attached.stdout()
-                && let Some(result) = ReaderStream::new(stdout).next().await
-            {
-                if let Ok(bytes) = result {
-                    println!("attached: stdout: {:?}", bytes);
-                    // println!("writing output to file {}", file_name.to_string_lossy());
-                    // let mut file = File::create(file_name)?;
-                    // file.write_all(&bytes)?;
+                    println!("attaching: stderr: {:?}", bytes);
                 } else if let Err(e) = result {
                     return Err(Box::new(e));
                 }
@@ -286,9 +296,9 @@ Using API: QEMU 11.0.0
         virt_launcher_version,
     );
 
-    let _output = cpu_caps.to_yaml()?;
-    // if let Err(e) = out.write_all(output.as_bytes()) {
-    //     return Err(Box::new(e));
-    // };
+    let output = cpu_caps.to_yaml()?;
+    if let Err(e) = out.write_all(output.as_bytes()) {
+        return Err(Box::new(e));
+    };
     Ok(())
 }
