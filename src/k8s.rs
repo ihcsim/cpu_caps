@@ -6,8 +6,7 @@ use kube::{
 };
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 use std::path::PathBuf;
 use tokio_util::io::ReaderStream;
 
@@ -210,12 +209,6 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 while let Some(chunk) = stream.next().await {
                     stream_contents.extend_from_slice(&chunk?);
                 }
-
-                let file_name = format!("{}.tar.gz", pod_name);
-                println!("attaching: writing output to file {}", file_name);
-                let mut file = File::create(&file_name)?;
-                file.write_all(&stream_contents)?;
-
                 let read = Cursor::new(stream_contents.clone());
                 if let Some(spec) = pod.spec
                     && let Some(node_name) = spec.node_name
