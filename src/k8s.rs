@@ -4,9 +4,10 @@ use kube::{
     Client,
     api::{Api, AttachParams, ListParams, ObjectList, Patch, PatchParams, WatchEvent, WatchParams},
 };
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Cursor, Read, Write};
 use std::path::PathBuf;
 use tokio_util::io::ReaderStream;
 
@@ -183,7 +184,10 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         Ok(())
     }
 
-    pub async fn copy_from_debuggers(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn copy_from_debuggers(
+        &self,
+    ) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
+        let mut out_files: HashMap<String, Box<dyn Read>> = HashMap::new();
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
             let pod_name = pod.metadata.name.as_deref().unwrap_or("");
@@ -209,8 +213,15 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
 
                 let file_name = format!("{}.tar.gz", pod_name);
                 println!("attaching: writing output to file {}", file_name);
-                let mut file = File::create(file_name)?;
+                let mut file = File::create(&file_name)?;
                 file.write_all(&stream_contents)?;
+
+                let read = Cursor::new(stream_contents.clone());
+                if let Some(spec) = pod.spec
+                    && let Some(node_name) = spec.node_name
+                {
+                    out_files.insert(node_name, Box::new(read));
+                }
             }
             if let Some(stderr) = attached.stderr()
                 && let Some(result) = ReaderStream::new(stderr).next().await
@@ -222,7 +233,8 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 }
             }
         }
-        Ok(())
+
+        Ok(out_files)
     }
 
     async fn list_virt_handler_pods(&self) -> Result<ObjectList<Pod>, Box<dyn Error>> {

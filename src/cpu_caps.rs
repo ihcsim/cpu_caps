@@ -8,7 +8,7 @@ use types::{LibvirtData, NodeCaps};
 mod types;
 
 pub fn compute(
-    node_names: Vec<&str>,
+    node_names: Vec<String>,
     caps: &capabilities::Capabilities,
     domcaps: &DomainCapabilities,
     cpu: &supported_features::Cpu,
@@ -130,7 +130,7 @@ mod test {
         let buf = BufReader::new(xml_file);
         let cpu: Cpu = de::from_reader(buf).unwrap();
 
-        let node_names = vec!["isim-dev"];
+        let node_names = vec!["isim-dev".to_string()];
         let virsh_version = r#"Compiled against library: libvirt 11.0.0
 Using library: libvirt 11.0.0
 Using API: QEMU 11.0.0

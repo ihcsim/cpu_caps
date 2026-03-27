@@ -5,3 +5,4 @@ samples
 # Added by cargo
 
 /target
+**/*.tar.gz
