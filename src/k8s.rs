@@ -41,7 +41,15 @@ impl<'a> K8sApi<'a> {
         })
     }
 
-    pub async fn inject_debuggers(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn extract_libvirt_data(
+        &self,
+    ) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
+        self.inject_debuggers().await?;
+        self.wait_for_debuggers().await?;
+        self.copy_from_debuggers().await
+    }
+
+    async fn inject_debuggers(&self) -> Result<(), Box<dyn Error>> {
         let patch_ephemeral_containers = serde_json::json!({
             "spec": {
                 "ephemeralContainers": [
@@ -117,7 +125,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         Ok(())
     }
 
-    pub async fn wait_for_debuggers(&self) -> Result<(), Box<dyn Error>> {
+    async fn wait_for_debuggers(&self) -> Result<(), Box<dyn Error>> {
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         let total_pods = virt_handler_pods.items.len() as u32;
         let mut total_waits = 0;
@@ -183,9 +191,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         Ok(())
     }
 
-    pub async fn copy_from_debuggers(
-        &self,
-    ) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
+    async fn copy_from_debuggers(&self) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
         let mut out_files: HashMap<String, Box<dyn Read>> = HashMap::new();
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
