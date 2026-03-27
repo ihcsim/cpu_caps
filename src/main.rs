@@ -1,11 +1,8 @@
-use de::types::capabilities::Capabilities;
-use de::types::supported_features::Cpu;
-use de::types::virsh_domcapabilities::DomainCapabilities;
+use cpu_caps::types::LibvirtData;
 use flate2::read::GzDecoder;
 use k8s::K8sApi;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
 use std::io::{self, BufReader, Cursor, Read};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -22,6 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let debugger_name = format!("debuggger-{}", timestamp);
     let debugger_image = "quay.io/kubevirt/virt-launcher:v1.7.1".to_string();
+    let virt_launcher_image = debugger_image.clone();
     let debugger_ttl_seconds = 3600;
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
 
@@ -34,63 +32,62 @@ async fn main() -> Result<(), Box<dyn Error>> {
         debugger_ttl_seconds,
     )
     .await?;
-    api.inject_debuggers().await?;
-    api.wait_for_debuggers().await?;
-    let out_files = api.copy_from_debuggers().await?;
-    out_yaml(out_files, &mut io::sink())?;
+    let node_to_archive = api.extract_libvirt_data().await?;
+    out_yaml(virt_launcher_image, node_to_archive, &mut io::stdout())?;
     Ok(())
 }
 
 fn out_yaml<W: io::Write>(
-    out_files: HashMap<String, Box<dyn Read>>,
+    virt_launcher_image: String,
+    node_to_archive: HashMap<String, Box<dyn Read>>,
     out: &mut W,
 ) -> Result<(), Box<dyn Error>> {
-    for (node_name, reader) in out_files {
+    let mut libvirt_data: Vec<LibvirtData> = Vec::new();
+    for (node_name, reader) in node_to_archive {
+        println!("Processing archive entry for node: {}", node_name);
+        // read the archive entries into bufreader and then deserialize the XML
+        // content
+        let mut node_libvirt_data = LibvirtData::default();
         let decoder = GzDecoder::new(reader);
         let mut archive = Archive::new(decoder);
         for entry in archive.entries()? {
             let mut file = entry?;
             let mut contents = Vec::new();
             file.read_to_end(&mut contents)?;
-
-            if let Ok(path) = file.path()
-                && let Some(file_name_raw) = path.file_name()
+            let mut buf = BufReader::new(Cursor::new(contents));
+            if let Some(file_name_raw) = file.path()?.file_name()
                 && let Some(file_name) = file_name_raw.to_str()
             {
-                let mut buf = BufReader::new(Cursor::new(contents));
+                println!("Processing file: {}", file_name);
                 match file_name {
                     "virsh_domcapabilities.xml" => {
-                        let domcaps: DomainCapabilities = de::from_reader(buf)?;
+                        node_libvirt_data.domcaps = de::from_reader(buf)?;
                     }
                     "capabilities.xml" => {
-                        let caps: Capabilities = de::from_reader(buf)?;
+                        node_libvirt_data._caps = de::from_reader(buf)?;
                     }
                     "supported_features.xml" => {
-                        let cpu: Cpu = de::from_reader(buf)?;
+                        node_libvirt_data.cpu = de::from_reader(buf)?;
                     }
                     ".version" => {
                         let mut virsh_version = String::new();
                         buf.read_to_string(&mut virsh_version)?;
+                        node_libvirt_data.virsh_version =
+                            virsh_version.trim_matches(char::is_whitespace).to_string();
                     }
                     _ => continue,
                 };
             }
         }
+        node_libvirt_data.node_name = node_name;
+        node_libvirt_data.virt_launcher_image = virt_launcher_image.clone();
+        libvirt_data.push(node_libvirt_data);
     }
 
-    //     let virt_launcher_version = "1.6.3";
-    //     let cpu_caps = cpu_caps::compute(
-    //         node_names,
-    //         &caps,
-    //         &domcaps,
-    //         &cpu,
-    //         virsh_version,
-    //         virt_launcher_version,
-    //     );
-    //
-    //     let output = cpu_caps.to_yaml()?;
-    //     if let Err(e) = out.write_all(output.as_bytes()) {
-    //         return Err(Box::new(e));
-    //     };
+    let cpu_caps = cpu_caps::compute(libvirt_data);
+    let output = cpu_caps.to_yaml()?;
+    if let Err(e) = out.write_all(output.as_bytes()) {
+        return Err(Box::new(e));
+    };
     Ok(())
 }

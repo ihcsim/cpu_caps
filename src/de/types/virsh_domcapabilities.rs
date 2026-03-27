@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct DomainCapabilities {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -18,19 +18,19 @@ pub struct DomainCapabilities {
     pub features: Features,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Vcpu {
     #[serde(rename = "@max")]
     pub max: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Iothreads {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Os {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -41,7 +41,7 @@ pub struct Os {
     pub loader: Loader,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct OsEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -50,7 +50,7 @@ pub struct OsEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Loader {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -61,7 +61,7 @@ pub struct Loader {
     pub loader_enum: Vec<LoaderEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct LoaderEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -70,14 +70,14 @@ pub struct LoaderEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Cpu {
     #[serde(rename = "$text")]
     pub text: Option<String>,
     pub mode: Vec<Mode>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Mode {
     #[serde(rename = "@name")]
     pub name: String,
@@ -94,7 +94,7 @@ pub struct Mode {
     pub blockers: Option<Vec<Blockers>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct ModeEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -103,7 +103,7 @@ pub struct ModeEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Model {
     #[serde(rename = "@fallback")]
     pub fallback: Option<String>,
@@ -117,7 +117,7 @@ pub struct Model {
     pub text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Maxphysaddr {
     #[serde(rename = "@mode")]
     pub mode: String,
@@ -125,7 +125,7 @@ pub struct Maxphysaddr {
     pub limit: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct ModeFeature {
     #[serde(rename = "@policy")]
     pub policy: String,
@@ -133,7 +133,7 @@ pub struct ModeFeature {
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Blockers {
     #[serde(rename = "@model")]
     pub model: String,
@@ -142,13 +142,13 @@ pub struct Blockers {
     pub feature: Vec<BlockersFeature>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct BlockersFeature {
     #[serde(rename = "@name")]
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct MemoryBacking {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -158,7 +158,7 @@ pub struct MemoryBacking {
     pub memory_backing_enum: MemoryBackingEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct MemoryBackingEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -167,7 +167,7 @@ pub struct MemoryBackingEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Devices {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -185,7 +185,7 @@ pub struct Devices {
     pub panic: Panic,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Disk {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -195,7 +195,7 @@ pub struct Disk {
     pub disk_enum: Vec<DiskEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct DiskEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -204,7 +204,7 @@ pub struct DiskEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Graphics {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -214,7 +214,7 @@ pub struct Graphics {
     pub graphics_enum: GraphicsEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct GraphicsEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -223,7 +223,7 @@ pub struct GraphicsEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Video {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -233,7 +233,7 @@ pub struct Video {
     pub video_enum: VideoEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct VideoEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -242,7 +242,7 @@ pub struct VideoEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Hostdev {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -252,7 +252,7 @@ pub struct Hostdev {
     pub hostdev_enum: Vec<HostdevEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct HostdevEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -261,7 +261,7 @@ pub struct HostdevEnum {
     pub value: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Rng {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -271,7 +271,7 @@ pub struct Rng {
     pub rng_enum: Vec<RngEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct RngEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -280,7 +280,7 @@ pub struct RngEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Filesystem {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -290,7 +290,7 @@ pub struct Filesystem {
     pub filesystem_enum: FilesystemEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct FilesystemEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -299,7 +299,7 @@ pub struct FilesystemEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Tpm {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -309,7 +309,7 @@ pub struct Tpm {
     pub tpm_enum: Vec<TpmEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct TpmEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -318,7 +318,7 @@ pub struct TpmEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Redirdev {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -328,7 +328,7 @@ pub struct Redirdev {
     pub redirdev_enum: RedirdevEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct RedirdevEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -337,7 +337,7 @@ pub struct RedirdevEnum {
     pub value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Channel {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -347,7 +347,7 @@ pub struct Channel {
     pub channel_enum: ChannelEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct ChannelEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -356,7 +356,7 @@ pub struct ChannelEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Crypto {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -366,16 +366,16 @@ pub struct Crypto {
     pub crypto_enum: Vec<CryptoEnum>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct CryptoEnum {
     #[serde(rename = "@name")]
     pub name: String,
     #[serde(rename = "$text")]
     pub text: Option<String>,
-    pub value: Vec<String>,
+    pub value: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Interface {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -385,7 +385,7 @@ pub struct Interface {
     pub interface_enum: InterfaceEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct InterfaceEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -394,7 +394,7 @@ pub struct InterfaceEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Panic {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -404,7 +404,7 @@ pub struct Panic {
     pub panic_enum: PanicEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct PanicEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -413,7 +413,7 @@ pub struct PanicEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Features {
     #[serde(rename = "$text")]
     pub text: Option<String>,
@@ -433,61 +433,61 @@ pub struct Features {
     pub launch_security: LaunchSecurity,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Gic {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Vmcoreinfo {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Genid {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct BackingStoreInput {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Backup {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct AsyncTeardown {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Ps2 {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Sev {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Sgx {
     #[serde(rename = "@supported")]
     pub supported: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Hyperv {
     #[serde(rename = "@supported")]
     pub supported: String,
@@ -497,7 +497,7 @@ pub struct Hyperv {
     pub hyperv_enum: HypervEnum,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct HypervEnum {
     #[serde(rename = "@name")]
     pub name: String,
@@ -506,7 +506,7 @@ pub struct HypervEnum {
     pub value: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct LaunchSecurity {
     #[serde(rename = "@supported")]
     pub supported: String,

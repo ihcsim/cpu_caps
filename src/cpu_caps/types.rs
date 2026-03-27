@@ -1,14 +1,16 @@
 use crate::de::types::{
-    capabilities, supported_features, virsh_domcapabilities::DomainCapabilities,
+    capabilities::Capabilities, supported_features::Cpu, virsh_domcapabilities::DomainCapabilities,
 };
 use serde::{Deserialize, Serialize};
 
-pub struct LibvirtData<'a> {
-    pub _caps: &'a capabilities::Capabilities,
-    pub domcaps: &'a DomainCapabilities,
-    pub cpu: &'a supported_features::Cpu,
+#[derive(Default)]
+pub struct LibvirtData {
+    pub _caps: Capabilities,
+    pub domcaps: DomainCapabilities,
+    pub cpu: Cpu,
+    pub node_name: String,
     pub virsh_version: String,
-    pub virt_launcher_version: String,
+    pub virt_launcher_image: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -22,18 +24,18 @@ pub struct NodeCaps {
 }
 
 impl NodeCaps {
-    pub fn new(node_name: String, libvirt_data: &LibvirtData) -> NodeCaps {
+    pub fn new(data: &LibvirtData) -> NodeCaps {
         NodeCaps {
-            node_name,
-            host_cpu_model: HostCpuModel::new(libvirt_data.domcaps),
-            supported_features: NodeCaps::supported_features(libvirt_data.cpu),
-            supported_models: NodeCaps::supported_models(libvirt_data.domcaps),
-            virsh_version: libvirt_data.virsh_version.clone(),
-            virt_launcher_version: libvirt_data.virt_launcher_version.clone(),
+            node_name: data.node_name.clone(),
+            host_cpu_model: HostCpuModel::new(&data.domcaps),
+            supported_features: NodeCaps::supported_features(&data.cpu),
+            supported_models: NodeCaps::supported_models(&data.domcaps),
+            virsh_version: data.virsh_version.clone(),
+            virt_launcher_version: data.virt_launcher_image.clone(),
         }
     }
 
-    fn supported_features(cpu: &supported_features::Cpu) -> Vec<String> {
+    fn supported_features(cpu: &Cpu) -> Vec<String> {
         let mut supported_features = Vec::new();
         for feature in &cpu.feature {
             if feature.policy == "require" {

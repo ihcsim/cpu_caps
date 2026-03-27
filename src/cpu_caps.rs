@@ -1,45 +1,31 @@
-use crate::de::types::{
-    capabilities, supported_features, virsh_domcapabilities::DomainCapabilities,
-};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use types::{LibvirtData, NodeCaps};
 
-mod types;
+pub mod types;
 
-pub fn compute(
-    node_names: Vec<String>,
-    caps: &capabilities::Capabilities,
-    domcaps: &DomainCapabilities,
-    cpu: &supported_features::Cpu,
-    virsh_version: &str,
-    virt_launcher_version: &str,
-) -> CpuCaps {
-    let libvirt_data = &LibvirtData {
-        _caps: caps,
-        domcaps,
-        cpu,
-        virsh_version: virsh_version.to_string(),
-        virt_launcher_version: virt_launcher_version.to_string(),
-    };
-
+pub fn compute(libvirt_data: Vec<LibvirtData>) -> CpuCaps {
+    // model_to_nodes is used to compute the global capabilities
     let mut model_to_nodes = HashMap::new();
+
+    //nodes_caps is used to compute the node specific capabilities
     let mut nodes_caps = Vec::new();
-    for node_name in &node_names {
-        let node_caps = NodeCaps::new(node_name.to_string(), libvirt_data);
+
+    for data in &libvirt_data {
+        let node_caps = NodeCaps::new(data);
         nodes_caps.push(node_caps.clone());
 
         for model in node_caps.supported_models {
             model_to_nodes
                 .entry(model)
                 .or_insert(Vec::new())
-                .push(node_caps.node_name.clone());
+                .push(data.node_name.clone());
         }
     }
 
     let mut global_caps = Vec::new();
     for (model, nodes) in model_to_nodes {
-        if nodes.len() == node_names.len() {
+        if nodes.len() == libvirt_data.len() {
             global_caps.push(model);
         }
     }

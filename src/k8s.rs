@@ -192,7 +192,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
     }
 
     async fn copy_from_debuggers(&self) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
-        let mut out_files: HashMap<String, Box<dyn Read>> = HashMap::new();
+        let mut node_to_archive: HashMap<String, Box<dyn Read>> = HashMap::new();
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
             let pod_name = pod.metadata.name.as_deref().unwrap_or("");
@@ -202,6 +202,8 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 pod_name, self.debugger_name, src_path
             );
 
+            // stream the archive content to stdout and then read the stdout of
+            // the debugger container
             let tar_cmd = format!("tar -C {} -czO .", src_path);
             let exec_cmds = vec!["/bin/bash", "-c", tar_cmd.as_str()];
             let attach_params = AttachParams::default()
@@ -219,7 +221,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 if let Some(spec) = pod.spec
                     && let Some(node_name) = spec.node_name
                 {
-                    out_files.insert(node_name, Box::new(read));
+                    node_to_archive.insert(node_name, Box::new(read));
                 }
             }
             if let Some(stderr) = attached.stderr()
@@ -233,7 +235,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
             }
         }
 
-        Ok(out_files)
+        Ok(node_to_archive)
     }
 
     async fn list_virt_handler_pods(&self) -> Result<ObjectList<Pod>, Box<dyn Error>> {

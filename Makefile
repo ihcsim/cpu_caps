@@ -14,7 +14,7 @@ test:
 xml_to_rs:
 	for mod in virsh_domcapabilities capabilities supported_features; do \
 		rm -rf ./src/de/types/$$mod.rs; \
-		xml_schema_generator -d "Serialize, Deserialize, Debug, PartialEq, Clone" ./testdata/$$mod.xml ./src/de/types/$$mod.rs; \
+		xml_schema_generator -d "Serialize, Deserialize, Debug, PartialEq, Clone, Default" ./testdata/$$mod.xml ./src/de/types/$$mod.rs; \
 	done
 
 tools:
