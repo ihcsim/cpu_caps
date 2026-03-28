@@ -93,7 +93,10 @@ fn is_obsolete_model(cpu_model: &str) -> bool {
 mod test {
     use super::*;
     use crate::de;
-    use crate::de::types::{supported_features::Cpu, virsh_domcapabilities::DomainCapabilities};
+    use crate::de::types::{
+        capabilities::Capabilities, supported_features::Cpu,
+        virsh_domcapabilities::DomainCapabilities,
+    };
     use std::fs::File;
     use std::io::BufReader;
     use std::path::Path;
@@ -109,27 +112,28 @@ mod test {
         let path = Path::new("testdata").join("capabilities.xml");
         let xml_file = File::open(path).unwrap();
         let buf = BufReader::new(xml_file);
-        let caps: capabilities::Capabilities = de::from_reader(buf).unwrap();
+        let caps: Capabilities = de::from_reader(buf).unwrap();
 
         let path = Path::new("testdata").join("supported_features.xml");
         let xml_file = File::open(path).unwrap();
         let buf = BufReader::new(xml_file);
         let cpu: Cpu = de::from_reader(buf).unwrap();
 
-        let node_names = vec!["isim-dev".to_string()];
+        let node_name = "isim-dev";
         let virsh_version = r#"Compiled against library: libvirt 11.0.0
 Using library: libvirt 11.0.0
 Using API: QEMU 11.0.0
 "#;
-        let virt_launcher_version = "1.6.3";
-        let mut cpu_caps = compute(
-            node_names,
-            &caps,
-            &domcaps,
-            &cpu,
-            virsh_version,
-            virt_launcher_version,
-        );
+        let virt_launcher_image = "quay.io/kubevirt/virt-launcher:v1.6.3";
+        let libvirt_data = vec![LibvirtData {
+            node_name: node_name.to_string(),
+            domcaps: domcaps.clone(),
+            _caps: caps,
+            cpu,
+            virsh_version: virsh_version.to_string(),
+            virt_launcher_image: virt_launcher_image.to_string(),
+        }];
+        let mut cpu_caps = compute(libvirt_data);
 
         let mut expected_supported_models = vec![
             "Denverton-v2",
@@ -311,7 +315,7 @@ Using API: QEMU 11.0.0
         assert_eq!(node_caps.supported_features, expected_supported_features);
         assert_eq!(node_caps.supported_models, expected_supported_models);
         assert_eq!(node_caps.virsh_version, virsh_version);
-        assert_eq!(node_caps.virt_launcher_version, virt_launcher_version);
+        assert_eq!(node_caps.virt_launcher_image, virt_launcher_image);
 
         cpu_caps.global_caps.sort();
         assert_eq!(cpu_caps.global_caps, expected_supported_models);

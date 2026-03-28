@@ -20,7 +20,7 @@ pub struct NodeCaps {
     pub supported_features: Vec<String>,
     pub supported_models: Vec<String>,
     pub virsh_version: String,
-    pub virt_launcher_version: String,
+    pub virt_launcher_image: String,
 }
 
 impl NodeCaps {
@@ -31,7 +31,7 @@ impl NodeCaps {
             supported_features: NodeCaps::supported_features(&data.cpu),
             supported_models: NodeCaps::supported_models(&data.domcaps),
             virsh_version: data.virsh_version.clone(),
-            virt_launcher_version: data.virt_launcher_image.clone(),
+            virt_launcher_image: data.virt_launcher_image.clone(),
         }
     }
 
