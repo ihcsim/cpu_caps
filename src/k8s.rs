@@ -42,7 +42,7 @@ impl<'a> K8sApi<'a> {
         })
     }
 
-    pub async fn extract_libvirt_data(
+    pub async fn exec_cp_libvirt_data(
         &self,
     ) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
         self.inject_debuggers().await?;
@@ -194,7 +194,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
     }
 
     async fn copy_from_debuggers(&self) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
-        let mut node_to_archive: HashMap<String, Box<dyn Read>> = HashMap::new();
+        let mut nodes_to_archive: HashMap<String, Box<dyn Read>> = HashMap::new();
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
             let pod_name = pod.metadata.name.as_deref().unwrap_or("");
@@ -223,7 +223,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 if let Some(spec) = pod.spec
                     && let Some(node_name) = spec.node_name
                 {
-                    node_to_archive.insert(node_name, Box::new(read));
+                    nodes_to_archive.insert(node_name, Box::new(read));
                 }
             }
             if let Some(stderr) = attached.stderr()
@@ -237,7 +237,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
             }
         }
 
-        Ok(node_to_archive)
+        Ok(nodes_to_archive)
     }
 
     async fn list_virt_handler_pods(&self) -> Result<ObjectList<Pod>, Box<dyn Error>> {

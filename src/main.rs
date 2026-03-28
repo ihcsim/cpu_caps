@@ -27,15 +27,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let api = K8sApi::new(
         kubevirt_ns,
-        src_path.clone(),
+        src_path,
         selector,
         debugger_name,
         debugger_image,
         debugger_ttl_seconds,
     )
     .await?;
-    let node_to_archive = api.extract_libvirt_data().await?;
-    out_yaml(virt_launcher_image, node_to_archive, &mut io::stdout())?;
+    let nodes_to_archive = api.exec_cp_libvirt_data().await?;
+    out_yaml(virt_launcher_image, nodes_to_archive, &mut io::stdout())?;
     Ok(())
 }
 
