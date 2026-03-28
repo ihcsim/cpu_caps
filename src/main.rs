@@ -1,6 +1,7 @@
 use cpu_caps::types::LibvirtData;
 use flate2::read::GzDecoder;
 use k8s::K8sApi;
+use log::info;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, BufReader, Cursor, Read};
@@ -23,6 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let debugger_ttl_seconds = 3600;
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
 
+    env_logger::init();
     let api = K8sApi::new(
         kubevirt_ns,
         src_path.clone(),
@@ -44,7 +46,7 @@ fn out_yaml<W: io::Write>(
 ) -> Result<(), Box<dyn Error>> {
     let mut libvirt_data: Vec<LibvirtData> = Vec::new();
     for (node_name, reader) in node_to_archive {
-        println!("Processing archive entry for node: {}", node_name);
+        info!("processing archive entry for node: {}", node_name);
         // read the archive entries into bufreader and then deserialize the XML
         // content
         let mut node_libvirt_data = LibvirtData::default();
@@ -58,7 +60,7 @@ fn out_yaml<W: io::Write>(
             if let Some(file_name_raw) = file.path()?.file_name()
                 && let Some(file_name) = file_name_raw.to_str()
             {
-                println!("Processing file: {}", file_name);
+                info!("processing file: {}", file_name);
                 match file_name {
                     "virsh_domcapabilities.xml" => {
                         node_libvirt_data.domcaps = de::from_reader(buf)?;

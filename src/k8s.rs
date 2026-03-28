@@ -4,6 +4,7 @@ use kube::{
     Client,
     api::{Api, AttachParams, ListParams, ObjectList, Patch, PatchParams, WatchEvent, WatchParams},
 };
+use log::{debug, error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{Cursor, Read};
@@ -92,20 +93,21 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 None => continue,
             };
             if phase != "Running" {
-                println!("patching: skipping non-running pod {}", pod_name);
+                debug!("skipping: pod: {} reason: phase {}", pod_name, phase);
                 continue;
             }
+
             let node_name = match &pod.spec {
                 Some(spec) => spec.node_name.as_deref().unwrap_or(""),
                 None => continue,
             };
             if pod_name.is_empty() || node_name.is_empty() {
-                println!("patching: skipping pod with missing name or node");
+                debug!("skipping: pod with missing name or node. should not happen",);
                 continue;
             }
 
-            println!(
-                "patching: pod {} node {} container {}",
+            info!(
+                "patching: pod {} node {} debugger {}",
                 pod_name, node_name, self.debugger_name
             );
             let patch_params = PatchParams::default();
@@ -118,7 +120,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 )
                 .await
             {
-                println!("failed to patch pod {}: {}", pod_name, e);
+                error!("failed to patch pod {}: {}", pod_name, e);
                 return Err(Box::new(e));
             };
         }
@@ -136,7 +138,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
             match status {
                 WatchEvent::Modified(s) => {
                     let pod_name = s.metadata.name.as_deref().unwrap_or("");
-                    println!("waiting: pod {} container {}", pod_name, self.debugger_name);
+                    info!("waiting: pod {} container {}", pod_name, self.debugger_name);
 
                     if let Some(status) = s.status
                         && let Some(ephemeral_containers_status) =
@@ -161,7 +163,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                             && let Some(result) = ReaderStream::new(stderr).next().await
                         {
                             if let Ok(bytes) = result {
-                                println!("waiting: stderr: {:?}", bytes);
+                                info!("waiting: stderr: {:?}", bytes);
                             } else if let Err(e) = result {
                                 return Err(Box::new(e));
                             }
@@ -170,7 +172,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                             && let Some(result) = ReaderStream::new(stderr).next().await
                         {
                             if let Ok(bytes) = result {
-                                println!("waiting: stdout: {:?}", bytes);
+                                info!("waiting: stdout: {:?}", bytes);
                             } else if let Err(e) = result {
                                 return Err(Box::new(e));
                             }
@@ -197,8 +199,8 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         for pod in virt_handler_pods {
             let pod_name = pod.metadata.name.as_deref().unwrap_or("");
             let src_path = self.src_path.to_str().unwrap_or("");
-            println!(
-                "attaching: pod {}, containar {}, path {} ",
+            info!(
+                "attaching: pod {}, debugger {}, path {} ",
                 pod_name, self.debugger_name, src_path
             );
 
@@ -228,7 +230,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
                 && let Some(result) = ReaderStream::new(stderr).next().await
             {
                 if let Ok(bytes) = result {
-                    println!("attaching: stderr: {:?}", bytes);
+                    info!("stderr: {:?}", bytes);
                 } else if let Err(e) = result {
                     return Err(Box::new(e));
                 }
