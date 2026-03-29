@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let virt_launcher_image = debugger_image.clone();
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-    let debugger_name = format!("debuggger-{}", timestamp);
+    let debugger_name = format!("debugger-{}", timestamp);
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
 
     env_logger::init();
