@@ -1,3 +1,4 @@
+use clap::Parser;
 use cpu_caps::types::LibvirtData;
 use flate2::read::GzDecoder;
 use k8s::K8sApi;
@@ -15,13 +16,15 @@ mod k8s;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let kubevirt_ns = "kubevirt".to_string();
-    let selector = "kubevirt.io=virt-handler";
+    let args = Args::parse();
+    let kubevirt_ns = args.kubevirt_ns;
+    let selector = args.selector;
+    let debugger_image = args.debugger_image;
+    let debugger_ttl_seconds = args.debugger_ttl_seconds;
+
+    let virt_launcher_image = debugger_image.clone();
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let debugger_name = format!("debuggger-{}", timestamp);
-    let debugger_image = "quay.io/kubevirt/virt-launcher:v1.7.1".to_string();
-    let virt_launcher_image = debugger_image.clone();
-    let debugger_ttl_seconds = 3600;
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
 
     env_logger::init();
@@ -92,4 +95,21 @@ fn out_yaml<W: io::Write>(
         return Err(Box::new(e));
     };
     Ok(())
+}
+
+#[derive(Parser, Debug)]
+#[command(name = "cpucaps")]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[clap(short, long, default_value = "kubevirt")]
+    kubevirt_ns: String,
+
+    #[clap(short, long, default_value = "kubevirt.io=virt-handler")]
+    selector: String,
+
+    #[clap(short, long, default_value = "quay.io/kubevirt/virt-launcher:v1.7.1")]
+    debugger_image: String,
+
+    #[clap(long, default_value = "3600")]
+    debugger_ttl_seconds: u64,
 }

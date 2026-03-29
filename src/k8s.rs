@@ -11,9 +11,9 @@ use std::io::{Cursor, Read};
 use std::path::PathBuf;
 use tokio_util::io::ReaderStream;
 
-pub struct K8sApi<'a> {
+pub struct K8sApi {
     pods: Api<Pod>,
-    selector: &'a str,
+    selector: String,
     src_path: PathBuf,
 
     debugger_name: String,
@@ -21,15 +21,15 @@ pub struct K8sApi<'a> {
     debugger_ttl_seconds: u64,
 }
 
-impl<'a> K8sApi<'a> {
+impl K8sApi {
     pub async fn new(
         ns: String,
         src_path: PathBuf,
-        selector: &'a str,
+        selector: String,
         debugger_name: String,
         debugger_image: String,
         debugger_ttl_seconds: u64,
-    ) -> Result<K8sApi<'a>, Box<dyn Error>> {
+    ) -> Result<K8sApi, Box<dyn Error>> {
         let client = Client::try_default().await?;
         let pods = Api::namespaced(client.clone(), ns.as_str());
         Ok(K8sApi {
@@ -132,7 +132,9 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         let total_pods = virt_handler_pods.items.len() as u32;
         let mut total_waits = 0;
 
-        let watch_params = WatchParams::default().labels(self.selector).timeout(180);
+        let watch_params = WatchParams::default()
+            .labels(self.selector.as_str())
+            .timeout(180);
         let mut stream = self.pods.watch(&watch_params, "0").await?.boxed();
         while let Some(status) = stream.try_next().await? {
             match status {
@@ -241,7 +243,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
     }
 
     async fn list_virt_handler_pods(&self) -> Result<ObjectList<Pod>, Box<dyn Error>> {
-        let list_params = ListParams::default().labels(self.selector);
+        let list_params = ListParams::default().labels(self.selector.as_str());
         let pods = self.pods.list(&list_params).await?;
         Ok(pods)
     }
