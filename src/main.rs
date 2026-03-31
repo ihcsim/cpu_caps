@@ -16,7 +16,7 @@ mod k8s;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let args = Args::parse();
+    let args = Cli::parse();
     let kubevirt_ns = args.kubevirt_ns;
     let selector = args.selector;
     let debugger_image = args.debugger_image;
@@ -100,7 +100,7 @@ fn out_yaml<W: io::Write>(
 #[derive(Parser, Debug)]
 #[command(name = "cpucaps")]
 #[command(version, about, long_about = None)]
-struct Args {
+struct Cli {
     #[clap(short, long, default_value = "kubevirt")]
     kubevirt_ns: String,
 
@@ -110,6 +110,12 @@ struct Args {
     #[clap(short, long, default_value = "quay.io/kubevirt/virt-launcher:v1.7.1")]
     debugger_image: String,
 
-    #[clap(long, default_value = "3600")]
+    #[clap(short = 't', long, default_value = "3600")]
     debugger_ttl_seconds: u64,
+}
+
+#[test]
+fn verify_cli() {
+    use clap::CommandFactory;
+    Cli::command().debug_assert();
 }
