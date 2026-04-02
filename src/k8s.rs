@@ -42,15 +42,30 @@ impl K8sApi {
         })
     }
 
-    pub async fn exec_cp_libvirt_data(
-        &self,
-    ) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
+    pub async fn exec_cp_libvirt_data(&mut self) -> Result<ExecOutput, Box<dyn Error>> {
         self.inject_debuggers().await?;
         self.wait_for_debuggers().await?;
         self.copy_from_debuggers().await
     }
 
-    async fn inject_debuggers(&self) -> Result<(), Box<dyn Error>> {
+    async fn inject_debuggers(&mut self) -> Result<(), Box<dyn Error>> {
+        let virt_handler_pods = self.list_virt_handler_pods().await?;
+        if virt_handler_pods.items.is_empty() {
+            return Err("no virt-handler pods found".into());
+        }
+
+        // if the debugger image is not provided, use the image of the first virt-handler pod
+        if self.debugger_image.is_none()
+            && let Some(spec) = &virt_handler_pods.items[0].spec
+            && let Some(image) = &spec.containers[0].image
+        {
+            self.debugger_image = Some(image.clone());
+        }
+        info!(
+            "using debugger image: {}",
+            self.debugger_image.as_ref().unwrap()
+        );
+
         let patch_ephemeral_containers = serde_json::json!({
             "spec": {
                 "ephemeralContainers": [
@@ -85,7 +100,6 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
             }
         });
 
-        let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
             let pod_name = pod.metadata.name.as_deref().unwrap_or("");
             let phase = match &pod.status {
@@ -195,7 +209,7 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         Ok(())
     }
 
-    async fn copy_from_debuggers(&self) -> Result<HashMap<String, Box<dyn Read>>, Box<dyn Error>> {
+    async fn copy_from_debuggers(&self) -> Result<ExecOutput, Box<dyn Error>> {
         let mut nodes_to_archive: HashMap<String, Box<dyn Read>> = HashMap::new();
         let virt_handler_pods = self.list_virt_handler_pods().await?;
         for pod in virt_handler_pods {
@@ -239,7 +253,10 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
             }
         }
 
-        Ok(nodes_to_archive)
+        Ok(ExecOutput {
+            nodes_to_archive,
+            virt_launcher_image: self.debugger_image.clone().unwrap_or_default(),
+        })
     }
 
     async fn list_virt_handler_pods(&self) -> Result<ObjectList<Pod>, Box<dyn Error>> {
@@ -247,4 +264,9 @@ sleep ${CONTAINER_TTL_SECONDS:-3600}"
         let pods = self.pods.list(&list_params).await?;
         Ok(pods)
     }
+}
+
+pub struct ExecOutput {
+    pub nodes_to_archive: HashMap<String, Box<dyn Read>>,
+    pub virt_launcher_image: String,
 }

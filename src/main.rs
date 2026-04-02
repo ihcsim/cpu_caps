@@ -3,7 +3,6 @@ use cpu_caps::types::LibvirtData;
 use flate2::read::GzDecoder;
 use k8s::K8sApi;
 use log::info;
-use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, BufReader, Cursor, Read};
 use std::path::Path;
@@ -37,18 +36,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         debugger_ttl_seconds,
     )
     .await?;
-    let nodes_to_archive = api.exec_cp_libvirt_data().await?;
-    out_yaml(virt_launcher_image, nodes_to_archive, &mut io::stdout())?;
+    let exec_output = api.exec_cp_libvirt_data().await?;
+    out_yaml(exec_output, &mut io::stdout())?;
     Ok(())
 }
 
-fn out_yaml<W: io::Write>(
-    virt_launcher_image: String,
-    node_to_archive: HashMap<String, Box<dyn Read>>,
-    out: &mut W,
-) -> Result<(), Box<dyn Error>> {
+fn out_yaml<W: io::Write>(exec_output: k8s::ExecOutput, out: &mut W) -> Result<(), Box<dyn Error>> {
     let mut libvirt_data: Vec<LibvirtData> = Vec::new();
-    for (node_name, reader) in node_to_archive {
+    for (node_name, reader) in exec_output.nodes_to_archive {
         info!("processing archive entry for node: {}", node_name);
         // read the archive entries into bufreader and then deserialize the XML
         // content
@@ -85,7 +80,7 @@ fn out_yaml<W: io::Write>(
             }
         }
         node_libvirt_data.node_name = node_name;
-        node_libvirt_data.virt_launcher_image = virt_launcher_image.clone();
+        node_libvirt_data.virt_launcher_image = exec_output.virt_launcher_image.clone();
         libvirt_data.push(node_libvirt_data);
     }
 
