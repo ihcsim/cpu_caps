@@ -17,7 +17,7 @@ pub struct K8sApi {
     src_path: PathBuf,
 
     debugger_name: String,
-    debugger_image: String,
+    debugger_image: Option<String>,
     debugger_ttl_seconds: u64,
 }
 
@@ -27,7 +27,7 @@ impl K8sApi {
         src_path: PathBuf,
         selector: String,
         debugger_name: String,
-        debugger_image: String,
+        debugger_image: Option<String>,
         debugger_ttl_seconds: u64,
     ) -> Result<K8sApi, Box<dyn Error>> {
         let client = Client::try_default().await?;
@@ -58,8 +58,14 @@ impl K8sApi {
         if self.debugger_image.is_none()
             && let Some(spec) = &virt_handler_pods.items[0].spec
             && let Some(image) = &spec.containers[0].image
+            && let Some(pos) = image.find(":")
         {
-            self.debugger_image = Some(image.clone());
+            let tag = image.get(pos + 1..).map(|s| s.to_string());
+            self.debugger_image = format!(
+                "quay.io/kubevirt/virt-launcher:{}",
+                tag.unwrap_or("latest".to_string())
+            )
+            .into();
         }
         info!(
             "using debugger image: {}",

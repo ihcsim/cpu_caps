@@ -21,13 +21,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let debugger_image = args.debugger_image;
     let debugger_ttl_seconds = args.debugger_ttl_seconds;
 
-    let virt_launcher_image = debugger_image.clone();
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let debugger_name = format!("debugger-{}", timestamp);
     let src_path = Path::new("/var").join("lib").join("kubevirt-node-labeller");
 
     env_logger::init();
-    let api = K8sApi::new(
+    let mut api = K8sApi::new(
         kubevirt_ns,
         src_path,
         selector,
@@ -102,8 +101,8 @@ struct Cli {
     #[clap(short, long, default_value = "kubevirt.io=virt-handler")]
     selector: String,
 
-    #[clap(short, long, default_value = "quay.io/kubevirt/virt-launcher:v1.7.1")]
-    debugger_image: String,
+    #[clap(short, long)]
+    debugger_image: Option<String>,
 
     #[clap(short = 't', long, default_value = "3600")]
     debugger_ttl_seconds: u64,
