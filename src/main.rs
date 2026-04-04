@@ -95,15 +95,19 @@ fn out_yaml<W: io::Write>(exec_output: k8s::ExecOutput, out: &mut W) -> Result<(
 #[command(name = "cpucaps")]
 #[command(version, about, long_about = None)]
 struct Cli {
+    /// Namespace where kubevirt is installed
     #[clap(short, long, default_value = "kubevirt")]
     kubevirt_ns: String,
 
+    /// Label selector to find virt-handler pods
     #[clap(short, long, default_value = "kubevirt.io=virt-handler")]
     selector: String,
 
+    /// Optional virt-launcher image to use for collecting libvirt data. If not provided, the tool attempts to use quay.io/kubevirt/virt-launcher based on the kubevirt version in the cluster.
     #[clap(short, long)]
     debugger_image: Option<String>,
 
+    /// Time to live for the debugger pod in seconds. After this duration, the pod will be automatically deleted. Default is 3600 seconds (1 hour).
     #[clap(short = 't', long, default_value = "3600")]
     debugger_ttl_seconds: u64,
 }
