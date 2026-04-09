@@ -11,6 +11,9 @@ run:
 test:
 	cargo test -- --nocapture
 
+release:
+	cargo build --release
+
 xml_to_rs:
 	for mod in virsh_domcapabilities capabilities supported_features; do \
 		rm -rf ./src/de/types/$$mod.rs; \

@@ -6,7 +6,7 @@ information from all the KubeVirt `virt-handler` DaemonSet pods in the
 
 It allows us to compare the CPU capabilities information identified by different
 versions of `virt-handler` and also identify any global CPU model candidates. A
-CPU model is considered a globally supported candidate if more than half of the
+CPU model is considered a globally supported candidate if all of the
 nodes support it.
 
 ## Prerequisites
@@ -18,786 +18,604 @@ The kubeconfig must be included in the shell `$PATH` with permissions to run
 
 ## Usage
 
-The examples in this usage section is performed on a
-[Harvester](https://harvesterhci.io/) 1.5.2 cluster, with 2 nodes named
-`isim-dev` and `isim-dev2`. It covers the scenario of running a new version of
-`virt-launcher` on the 1.5.2 cluster.
-
-To generate a report with information on the host CPU capabilities of all the
-nodes on the cluster:
-
 ```sh
-./cpu_caps
+$ cpu_caps -h
+A rust application to detect kubevirt virtual machine cpu capabilities as reported by libvirt
+
+Usage: cpu_caps [OPTIONS]
+
+Options:
+  -k, --kubevirt-ns <KUBEVIRT_NS>
+          Namespace where kubevirt is installed [default: kubevirt]
+  -s, --selector <SELECTOR>
+          Label selector to find virt-handler pods [default: kubevirt.io=virt-handler]
+  -d, --debugger-image <DEBUGGER_IMAGE>
+          Optional virt-launcher image to use for collecting libvirt data. If not provided, the tool attempts to use quay.io/kubevirt/virt-launcher based on the kubevirt version in the cluster
+  -t, --debugger-ttl-seconds <DEBUGGER_TTL_SECONDS>
+          Time to live for the debugger pod in seconds. After this duration, the pod will be automatically deleted. Default is 3600 seconds (1 hour) [default: 3600]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
-```sh
-⚙️ discovering host and domain virt capabilities...
-➡️ version: registry.suse.com/suse/sles/15.6/virt-launcher:1.4.1-150600.5.21.2
-  ⏳ checking pod harvester-system/virt-handler-58bwp...
-     running debugger virt-handler-58bwp/debug-20251205-102708...
-tar: Removing leading `/' from member names
-  ⏳ checking pod harvester-system/virt-handler-t2qlz...
-     running debugger virt-handler-t2qlz/debug-20251205-102713...
-tar: Removing leading `/' from member names
-⚙️ generating report summary...
-  📝 output saved to ./out-20251205-102708.tar.gz
-```
+## Quick Start
 
-The report is saved to `./out-20251205-102708.tar.gz`.
-
-Untar the `.tar.gz` file:
+For testing purposes, create a 3-node [Kind][0] cluster:
 
 ```sh
-tar xvf ./out-20251205-102708.tar.gz
+make kind
 ```
 
-The report contains the CPU capabilities information collected from all the
-nodes in the cluster:
+To generate the CPU capabilities report using the default `virt-launcher` image:
 
 ```sh
-./out-20251205-102708/
-./out-20251205-102708/report.yaml
-./out-20251205-102708/isim-dev2/
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/supported_features.xml
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/virsh_domcapabilities.xml
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/.done
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/capabilities.xml
-./out-20251205-102708/isim-dev2/1.4.1-150600.5.21.2/.version
-./out-20251205-102708/isim-dev/
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/supported_features.xml
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/virsh_domcapabilities.xml
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/.done
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/capabilities.xml
-./out-20251205-102708/isim-dev/1.4.1-150600.5.21.2/.version
+cpu_caps
 ```
-
-Use `yq` to parse the `report.yaml` file:
-
-```sh
-yq . ./out-20251205-102708/report.yaml
-```
-
-<details>
-<summary>Expand to see full report output.</summary>
 
 ```yaml
-global:
-  supported_cpu_models:
-  - EPYC-Rome-v3: isim-dev2
-  - EPYC-Rome-v2: isim-dev2
-  - EPYC-Rome-v1: isim-dev2
-  - EPYC-Rome-v4: isim-dev2
-  - Penryn: isim-dev2
-  - EPYC-v4: isim-dev2
-  - EPYC-v1: isim-dev2
-  - EPYC-v3: isim-dev2
-  - EPYC-v2: isim-dev2
-  - Westmere-v1: isim-dev2
-  - Westmere-v2: isim-dev2
-  - IvyBridge-IBRS: isim-dev2
-  - Denverton-v3: isim-dev2
-  - Denverton-v2: isim-dev2
-  - EPYC-Rome: isim-dev2
-  - Westmere-IBRS: isim-dev2
-  - Opteron_G3-v1: isim-dev2
-  - Nehalem-IBRS: isim-dev2
-  - Dhyana: isim-dev2
-  - Nehalem: isim-dev2
-  - SandyBridge: isim-dev2
-  - IvyBridge: isim-dev2
-  - IvyBridge-v1: isim-dev2
-  - IvyBridge-v2: isim-dev2
-  - Nehalem-v2: isim-dev2
-  - Nehalem-v1: isim-dev2
-  - SandyBridge-IBRS: isim-dev2
-  - Westmere: isim-dev2
-  - Penryn-v1: isim-dev2
-  - Opteron_G3: isim-dev2
-  - SandyBridge-v2: isim-dev2
-  - SandyBridge-v1: isim-dev2
-  - EPYC: isim-dev2
-  - EPYC-IBPB: isim-dev2
-  - Dhyana-v2: isim-dev2
-  - Dhyana-v1: isim-dev2
-nodes:
-  isim-dev2:
-  - virt_launcher: 1.6.3
-    host_cpu_model:
-      name: EPYC-Genoa
-      vendor: AMD
-      required_features:
-      - x2apic
-      - tsc-deadline
-      - hypervisor
-      - tsc_adjust
-      - spec-ctrl
-      - stibp
-      - arch-capabilities
-      - ssbd
-      - cmp_legacy
-      - overflow-recov
-      - succor
-      - virt-ssbd
-      - lbrv
-      - tsc-scale
-      - vmcb-clean
-      - flushbyasid
-      - pause-filter
-      - pfthreshold
-      - vgif
-      - rdctl-no
-      - skip-l1dfl-vmentry
-      - mds-no
-      - pschange-mc-no
-      - gds-no
-      - rfds-no
-    supported_models:
-    - Denverton-v2
-    - Denverton-v3
-    - Dhyana
-    - Dhyana-v1
-    - Dhyana-v2
-    - EPYC
-    - EPYC-IBPB
-    - EPYC-Rome
-    - EPYC-Rome-v1
-    - EPYC-Rome-v2
-    - EPYC-Rome-v3
-    - EPYC-Rome-v4
-    - EPYC-v1
-    - EPYC-v2
-    - EPYC-v3
-    - EPYC-v4
-    - IvyBridge
-    - IvyBridge-IBRS
-    - IvyBridge-v1
-    - IvyBridge-v2
-    - Nehalem
-    - Nehalem-IBRS
-    - Nehalem-v1
-    - Nehalem-v2
-    - Opteron_G3
-    - Opteron_G3-v1
-    - Penryn
-    - Penryn-v1
-    - SandyBridge
-    - SandyBridge-IBRS
-    - SandyBridge-v1
-    - SandyBridge-v2
-    - Westmere
-    - Westmere-IBRS
-    - Westmere-v1
-    supported_features:
-    - 3dnowprefetch
-    - abm
-    - adx
-    - aes
-    - amd-psfd
-    - amd-ssbd
-    - amd-stibp
-    - apic
-    - arat
-    - arch-capabilities
-    - avx
-    - avx2
-    - avx512-bf16
-    - avx512-vpopcntdq
-    - avx512bitalg
-    - avx512bw
-    - avx512cd
-    - avx512dq
-    - avx512f
-    - avx512ifma
-    - avx512vbmi
-    - avx512vbmi2
-    - avx512vl
-    - avx512vnni
-    - bmi1
-    - bmi2
-    - clflush
-    - clflushopt
-    - clwb
-    - clzero
-    - cmov
-    - cmp_legacy
-    - cr8legacy
-    - cx16
-    - cx8
-    - de
-    - erms
-    - f16c
-    - flushbyasid
-    - fma
-    - fpu
-    - fsgsbase
-    - fsrm
-    - fxsr
-    - fxsr_opt
-    - gds-no
-    - gfni
-    - hypervisor
-    - ibpb
-    - ibrs
-    - invpcid
-    - lahf_lm
-    - lbrv
-    - lfence-always-serializing
-    - lm
-    - mca
-    - mce
-    - mds-no
-    - misalignsse
-    - mmx
-    - mmxext
-    - movbe
-    - msr
-    - mtrr
-    - no-nested-data-bp
-    - npt
-    - nrip-save
-    - null-sel-clr-base
-    - nx
-    - osvw
-    - overflow-recov
-    - pae
-    - pat
-    - pause-filter
-    - pclmuldq
-    - pdpe1gb
-    - perfctr_core
-    - pfthreshold
-    - pge
-    - pku
-    - pni
-    - popcnt
-    - pschange-mc-no
-    - pse
-    - pse36
-    - rdctl-no
-    - rdpid
-    - rdrand
-    - rdseed
-    - rdtscp
-    - rfds-no
-    - sep
-    - sha-ni
-    - skip-l1dfl-vmentry
-    - smap
-    - smep
-    - spec-ctrl
-    - ssbd
-    - sse
-    - sse2
-    - sse4.1
-    - sse4.2
-    - sse4a
-    - ssse3
-    - stibp
-    - stibp-always-on
-    - succor
-    - svm
-    - svme-addr-chk
-    - syscall
-    - tsc
-    - tsc-deadline
-    - tsc-scale
-    - tsc_adjust
-    - umip
-    - vaes
-    - vgif
-    - virt-ssbd
-    - vmcb-clean
-    - vme
-    - vpclmulqdq
-    - wbnoinvd
+global_caps:
+- Westmere
+- Dhyana-v1
+- IvyBridge-IBRS
+- EPYC-Rome-v4
+- IvyBridge-v1
+- Nehalem-v1
+- Nehalem-v2
+- Nehalem
+- SandyBridge-v1
+- Westmere-IBRS
+- Westmere-v1
+- Denverton-v3
+- EPYC-IBPB
+- Nehalem-IBRS
+- SandyBridge
+- EPYC-v4
+- Opteron_G3-v1
+- Dhyana-v2
+- Penryn
+- Westmere-v2
+- EPYC-Rome-v3
+- Dhyana
+- EPYC-v1
+- EPYC-Rome
+- EPYC
+- Denverton-v2
+- EPYC-Rome-v2
+- Opteron_G3
+- EPYC-Rome-v1
+- EPYC-v3
+- IvyBridge-v2
+- EPYC-v2
+- IvyBridge
+- SandyBridge-v2
+- Penryn-v1
+- SandyBridge-IBRS
+nodes_caps:
+- node_name: dev-worker
+  host_cpu_model:
+    name: EPYC-Genoa
+    vendor: AMD
+    required_features:
     - x2apic
-    - xgetbv1
-    - xsave
-    - xsavec
-    - xsaveerptr
-    - xsaveopt
-    - xsaves
-    virsh_version: |
-      Compiled against library: libvirt 11.0.0
-      Using library: libvirt 11.0.0
-      Using API: QEMU 11.0.0
+    - tsc-deadline
+    - hypervisor
+    - tsc_adjust
+    - spec-ctrl
+    - stibp
+    - flush-l1d
+    - ssbd
+    - cmp_legacy
+    - overflow-recov
+    - succor
+    - invtsc
+    - virt-ssbd
+    - lbrv
+    - tsc-scale
+    - vmcb-clean
+    - flushbyasid
+    - pause-filter
+    - pfthreshold
+    - vgif
+    - sbpb
+    - ibpb-brtype
+    - perfmon-v2
+  supported_features:
+  - 3dnowprefetch
+  - abm
+  - adx
+  - aes
+  - amd-psfd
+  - amd-ssbd
+  - amd-stibp
+  - apic
+  - arat
+  - auto-ibrs
+  - avx
+  - avx2
+  - avx512-bf16
+  - avx512-vpopcntdq
+  - avx512bitalg
+  - avx512bw
+  - avx512cd
+  - avx512dq
+  - avx512f
+  - avx512ifma
+  - avx512vbmi
+  - avx512vbmi2
+  - avx512vl
+  - avx512vnni
+  - bmi1
+  - bmi2
+  - clflush
+  - clflushopt
+  - clwb
+  - clzero
+  - cmov
+  - cmp_legacy
+  - cr8legacy
+  - cx16
+  - cx8
+  - de
+  - erms
+  - f16c
+  - flush-l1d
+  - flushbyasid
+  - fma
+  - fpu
+  - fsgsbase
+  - fsrm
+  - fxsr
+  - fxsr_opt
+  - gfni
+  - hypervisor
+  - ibpb
+  - ibpb-brtype
+  - ibrs
+  - invpcid
+  - invtsc
+  - lahf_lm
+  - lbrv
+  - lfence-always-serializing
+  - lm
+  - mca
+  - mce
+  - misalignsse
+  - mmx
+  - mmxext
+  - movbe
+  - msr
+  - mtrr
+  - no-nested-data-bp
+  - npt
+  - nrip-save
+  - null-sel-clr-base
+  - nx
+  - osvw
+  - overflow-recov
+  - pae
+  - pat
+  - pause-filter
+  - pclmuldq
+  - pdpe1gb
+  - perfctr_core
+  - perfmon-v2
+  - pfthreshold
+  - pge
+  - pku
+  - pni
+  - popcnt
+  - pse
+  - pse36
+  - rdpid
+  - rdrand
+  - rdseed
+  - rdtscp
+  - sbpb
+  - sep
+  - sha-ni
+  - smap
+  - smep
+  - spec-ctrl
+  - ssbd
+  - sse
+  - sse2
+  - sse4.1
+  - sse4.2
+  - sse4a
+  - ssse3
+  - stibp
+  - stibp-always-on
+  - succor
+  - svm
+  - svme-addr-chk
+  - syscall
+  - tsc
+  - tsc-deadline
+  - tsc-scale
+  - tsc_adjust
+  - umip
+  - vaes
+  - vgif
+  - virt-ssbd
+  - vmcb-clean
+  - vme
+  - vnmi
+  - vpclmulqdq
+  - wbnoinvd
+  - x2apic
+  - xgetbv1
+  - xsave
+  - xsavec
+  - xsaveerptr
+  - xsaveopt
+  - xsaves
+  supported_models:
+  - Denverton-v2
+  - Denverton-v3
+  - Dhyana
+  - Dhyana-v1
+  - Dhyana-v2
+  - EPYC
+  - EPYC-IBPB
+  - EPYC-Rome
+  - EPYC-Rome-v1
+  - EPYC-Rome-v2
+  - EPYC-Rome-v3
+  - EPYC-Rome-v4
+  - EPYC-v1
+  - EPYC-v2
+  - EPYC-v3
+  - EPYC-v4
+  - IvyBridge
+  - IvyBridge-IBRS
+  - IvyBridge-v1
+  - IvyBridge-v2
+  - Nehalem
+  - Nehalem-IBRS
+  - Nehalem-v1
+  - Nehalem-v2
+  - Opteron_G3
+  - Opteron_G3-v1
+  - Penryn
+  - Penryn-v1
+  - SandyBridge
+  - SandyBridge-IBRS
+  - SandyBridge-v1
+  - SandyBridge-v2
+  - Westmere
+  - Westmere-IBRS
+  - Westmere-v1
+  - Westmere-v2
+  virsh_version: |-
+    Compiled against library: libvirt 11.9.0
+    Using library: libvirt 11.9.0
+    Using API: QEMU 11.9.0
+    Running hypervisor: QEMU 10.1.0
+  virt_launcher_image: quay.io/kubevirt/virt-launcher:v1.8.1
+- node_name: dev-worker2
+  host_cpu_model:
+    name: EPYC-Genoa
+    vendor: AMD
+    required_features:
+    - x2apic
+    - tsc-deadline
+    - hypervisor
+    - tsc_adjust
+    - spec-ctrl
+    - stibp
+    - flush-l1d
+    - ssbd
+    - cmp_legacy
+    - overflow-recov
+    - succor
+    - invtsc
+    - virt-ssbd
+    - lbrv
+    - tsc-scale
+    - vmcb-clean
+    - flushbyasid
+    - pause-filter
+    - pfthreshold
+    - vgif
+    - sbpb
+    - ibpb-brtype
+    - perfmon-v2
+  supported_features:
+  - 3dnowprefetch
+  - abm
+  - adx
+  - aes
+  - amd-psfd
+  - amd-ssbd
+  - amd-stibp
+  - apic
+  - arat
+  - auto-ibrs
+  - avx
+  - avx2
+  - avx512-bf16
+  - avx512-vpopcntdq
+  - avx512bitalg
+  - avx512bw
+  - avx512cd
+  - avx512dq
+  - avx512f
+  - avx512ifma
+  - avx512vbmi
+  - avx512vbmi2
+  - avx512vl
+  - avx512vnni
+  - bmi1
+  - bmi2
+  - clflush
+  - clflushopt
+  - clwb
+  - clzero
+  - cmov
+  - cmp_legacy
+  - cr8legacy
+  - cx16
+  - cx8
+  - de
+  - erms
+  - f16c
+  - flush-l1d
+  - flushbyasid
+  - fma
+  - fpu
+  - fsgsbase
+  - fsrm
+  - fxsr
+  - fxsr_opt
+  - gfni
+  - hypervisor
+  - ibpb
+  - ibpb-brtype
+  - ibrs
+  - invpcid
+  - invtsc
+  - lahf_lm
+  - lbrv
+  - lfence-always-serializing
+  - lm
+  - mca
+  - mce
+  - misalignsse
+  - mmx
+  - mmxext
+  - movbe
+  - msr
+  - mtrr
+  - no-nested-data-bp
+  - npt
+  - nrip-save
+  - null-sel-clr-base
+  - nx
+  - osvw
+  - overflow-recov
+  - pae
+  - pat
+  - pause-filter
+  - pclmuldq
+  - pdpe1gb
+  - perfctr_core
+  - perfmon-v2
+  - pfthreshold
+  - pge
+  - pku
+  - pni
+  - popcnt
+  - pse
+  - pse36
+  - rdpid
+  - rdrand
+  - rdseed
+  - rdtscp
+  - sbpb
+  - sep
+  - sha-ni
+  - smap
+  - smep
+  - spec-ctrl
+  - ssbd
+  - sse
+  - sse2
+  - sse4.1
+  - sse4.2
+  - sse4a
+  - ssse3
+  - stibp
+  - stibp-always-on
+  - succor
+  - svm
+  - svme-addr-chk
+  - syscall
+  - tsc
+  - tsc-deadline
+  - tsc-scale
+  - tsc_adjust
+  - umip
+  - vaes
+  - vgif
+  - virt-ssbd
+  - vmcb-clean
+  - vme
+  - vnmi
+  - vpclmulqdq
+  - wbnoinvd
+  - x2apic
+  - xgetbv1
+  - xsave
+  - xsavec
+  - xsaveerptr
+  - xsaveopt
+  - xsaves
+  supported_models:
+  - Denverton-v2
+  - Denverton-v3
+  - Dhyana
+  - Dhyana-v1
+  - Dhyana-v2
+  - EPYC
+  - EPYC-IBPB
+  - EPYC-Rome
+  - EPYC-Rome-v1
+  - EPYC-Rome-v2
+  - EPYC-Rome-v3
+  - EPYC-Rome-v4
+  - EPYC-v1
+  - EPYC-v2
+  - EPYC-v3
+  - EPYC-v4
+  - IvyBridge
+  - IvyBridge-IBRS
+  - IvyBridge-v1
+  - IvyBridge-v2
+  - Nehalem
+  - Nehalem-IBRS
+  - Nehalem-v1
+  - Nehalem-v2
+  - Opteron_G3
+  - Opteron_G3-v1
+  - Penryn
+  - Penryn-v1
+  - SandyBridge
+  - SandyBridge-IBRS
+  - SandyBridge-v1
+  - SandyBridge-v2
+  - Westmere
+  - Westmere-IBRS
+  - Westmere-v1
+  - Westmere-v2
+  virsh_version: |-
+    Compiled against library: libvirt 11.9.0
+    Using library: libvirt 11.9.0
+    Using API: QEMU 11.9.0
+    Running hypervisor: QEMU 10.1.0
+  virt_launcher_image: quay.io/kubevirt/virt-launcher:v1.8.1
 ```
 
-</details>
+`cpu_caps` generates the CPU capabilities report in YAML format with their
+following structure:
+
+* `global_caps` lists the globally supported CPU models across all nodes
+* `node_caps` lists the CPU capabilities information for each node, including
+the host CPU model, supported CPU models and features, libvirt and qemu versions,
+and the `virt-launcher` image used to collect the information.
+
+The YAML output can be redirected to a file for further analysis using tools like
+`yq`.
 
 The following is a list of useful `yq` queries:
 
 ```sh
-# show the host cpu model information on node isim-dev
-yq .nodes.isim-dev.0.host_cpu_model out-20251205-102708/report.yaml
+# show the host cpu model information on node dev-worker
+yq '.nodes_caps[] | select(.node_name=="dev-worker")' report.yaml
 
-# show the supported cpu models on node isim-dev
-yq .nodes.isim-dev.0.supported_models out-20251205-102708/report.yaml
+# show the supported cpu models on node dev-worker2
+yq '.nodes_caps[] | select(.node_name=="dev-worker2")' report.yaml
 
-# show the supported cpu features on node isim-dev2
-yq .nodes.isim-dev2.0.supported_features out-20251205-102708/report.yaml
-
-# show the libvirt and qemu versions on all nodes
-yq '.nodes | to_entries | .[] | "node: \(.key)\n\(.value[0].virsh_version)"' out-20251205-102708/report.yaml
+# show the libvirt and qemu versions of all nodes
+yq '.nodes_caps[] | pick(["node_name", "virsh_version"])' report.yaml
 ```
 
-To check the CPU capabilities information generated by KubeVirt 1.6.3
-`virt-launcher` (used in Harvester 1.6):
+To check the CPU capabilities information generated by the older 1.6.3 version of
+`virt-launcher`:
 
 ```sh
-./cpu_caps -i registry.opensuse.org/isv/rancher/harvester/containers/v1.7/15.7/suse/sles/15.7/virt-launcher:1.6.3
+cpu_caps -d quay.io/kubevirt/virt-launcher:1.6.3
 ```
 
-The new report includes the information generated by both the `virt-launcher:1.4.1` and `virt-launcher:1.6.3` containers:
+## How It Works
+
+The script starts an ephemeral `virt-launcher` container in each `virt-handler`
+pod to collect the host CPU capabilities information of the node. Essentially, it
+replicates the task performed by the KubeVirt `node-labeller` init container in
+real time, without launching a new pod.
+
+If the optional `-d` argument is specified, the script uses its value as the
+image of the ephemeral container. This allows us to compare the information
+generated by different versions of `virt-launcher`, libvirt and QEMU.
+
+Without the `-d` argument, the ephemeral container uses the same image as the
+`virt-handler` container.
+
+The container executes the KubeVirt `node-labeller.sh` script<sup>[ref][6]</sup>, writes
+the output XML files to the container's `/var/lib/kubevirt-node-labeller` folder,
+and copies the output from the container to your shell. It operates within the
+security context boundary of its owner `virt-handler` pod.
+
+[6]: https://github.com/kubevirt/kubevirt/blob/de16a73f4ea3e48a5c8796d9db508b49960417bb/cmd/virt-launcher/node-labeller/node-labeller.sh
+
+![virt-handler pod without debug containers](./img/virt-handler-without-debug-containers.excalidraw.png)
+![virt-handler pod with debug containers](./img/virt-handler-with-debug-containers.excalidraw.png)
+
+To check the state of the ephemeral containers in all the `virt-handler` pods:
 
 ```sh
-⚙️ discovering host and domain virt capabilities...
-➡️ version: registry.suse.com/suse/sles/15.6/virt-launcher:1.4.1-150600.5.21.2
-  ⏳ checking pod harvester-system/virt-handler-58bwp...
-     running debugger virt-handler-58bwp/debug-20251205-105814...
-tar: Removing leading `/' from member names
-  ⏳ checking pod harvester-system/virt-handler-t2qlz...
-     running debugger virt-handler-t2qlz/debug-20251205-105819...
-tar: Removing leading `/' from member names
-➡️ version: registry.opensuse.org/isv/rancher/harvester/containers/v1.7/15.7/suse/sles/15.7/virt-launcher:1.6.3
-  ⏳ checking pod harvester-system/virt-handler-58bwp...
-     running debugger virt-handler-58bwp/debug-20251205-105824...
-tar: Removing leading `/' from member names
-  ⏳ checking pod harvester-system/virt-handler-t2qlz...
-     running debugger virt-handler-t2qlz/debug-20251205-105830...
-⚙️ generating report summary...
-  📝 output saved to ./out-20251205-105814.tar.gz
+kubectl -n kubevirt get po -lkubevirt.io=virt-handler -ojsonpath='{.items[*].status.ephemeralContainerStatuses}' | jq -r '.[] | select(.name | test("debugger-")) | "Name: \(.name), State: \(.state)"'
 ```
-
-To compare the host CPU model information generated by the two versions of `virt-launcher`:
 
 ```sh
-yq '.nodes[] | .[] | "virt_launcher: \(.virt_launcher)\n\(.host_cpu_model)\n"' report.yaml
+Name: debugger-1775708476, State: {"running":{"startedAt":"2026-04-09T04:21:16Z"}}
+Name: debugger-1775708481, State: {"running":{"startedAt":"2026-04-09T04:21:21Z"}}
+Name: debugger-1775708503, State: {"running":{"startedAt":"2026-04-09T04:21:43Z"}}
+Name: debugger-1775708963, State: {"running":{"startedAt":"2026-04-09T04:29:23Z"}}
 ```
 
-<details>
-<summary>Expand to see report output.</summary>
+To view their logs:
 
-```yaml
-global:
-  supported_cpu_models:
-  - EPYC-Rome-v3: isim-dev2
-  - EPYC-Rome-v2: isim-dev2
-  - EPYC-Rome-v1: isim-dev2
-  - EPYC-Rome-v4: isim-dev2
-  - Penryn: isim-dev2 isim-dev2
-  - EPYC-v4: isim-dev2
-  - EPYC-v1: isim-dev2
-  - EPYC-v3: isim-dev2
-  - EPYC-v2: isim-dev2
-  - Westmere-v1: isim-dev2
-  - Westmere-v2: isim-dev2
-  - IvyBridge-IBRS: isim-dev2 isim-dev2
-  - Denverton-v3: isim-dev2
-  - Denverton-v2: isim-dev2
-  - EPYC-Rome: isim-dev2 isim-dev2
-  - Westmere-IBRS: isim-dev2 isim-dev2
-  - Opteron_G3-v1: isim-dev2
-  - Nehalem-IBRS: isim-dev2 isim-dev2
-  - Dhyana: isim-dev2 isim-dev2
-  - Nehalem: isim-dev2 isim-dev2
-  - SandyBridge: isim-dev2 isim-dev2
-  - IvyBridge: isim-dev2 isim-dev2
-  - IvyBridge-v1: isim-dev2
-  - IvyBridge-v2: isim-dev2
-  - Nehalem-v2: isim-dev2
-  - Nehalem-v1: isim-dev2
-  - SandyBridge-IBRS: isim-dev2 isim-dev2
-  - Westmere: isim-dev2 isim-dev2
-  - Penryn-v1: isim-dev2
-  - Opteron_G3: isim-dev2 isim-dev2
-  - SandyBridge-v2: isim-dev2
-  - SandyBridge-v1: isim-dev2
-  - EPYC: isim-dev2 isim-dev2
-  - EPYC-IBPB: isim-dev2 isim-dev2
-  - Dhyana-v2: isim-dev2
-  - Dhyana-v1: isim-dev2
-nodes:
-  isim-dev2:
-  - virt_launcher: 1.6.3
-    host_cpu_model:
-      name: EPYC-Genoa
-      vendor: AMD
-      required_features:
-      - x2apic
-      - tsc-deadline
-      - hypervisor
-      - tsc_adjust
-      - spec-ctrl
-      - stibp
-      - arch-capabilities
-      - ssbd
-      - cmp_legacy
-      - overflow-recov
-      - succor
-      - virt-ssbd
-      - lbrv
-      - tsc-scale
-      - vmcb-clean
-      - flushbyasid
-      - pause-filter
-      - pfthreshold
-      - vgif
-      - rdctl-no
-      - skip-l1dfl-vmentry
-      - mds-no
-      - pschange-mc-no
-      - gds-no
-      - rfds-no
-    supported_models:
-    - Denverton-v2
-    - Denverton-v3
-    - Dhyana
-    - Dhyana-v1
-    - Dhyana-v2
-    - EPYC
-    - EPYC-IBPB
-    - EPYC-Rome
-    - EPYC-Rome-v1
-    - EPYC-Rome-v2
-    - EPYC-Rome-v3
-    - EPYC-Rome-v4
-    - EPYC-v1
-    - EPYC-v2
-    - EPYC-v3
-    - EPYC-v4
-    - IvyBridge
-    - IvyBridge-IBRS
-    - IvyBridge-v1
-    - IvyBridge-v2
-    - Nehalem
-    - Nehalem-IBRS
-    - Nehalem-v1
-    - Nehalem-v2
-    - Opteron_G3
-    - Opteron_G3-v1
-    - Penryn
-    - Penryn-v1
-    - SandyBridge
-    - SandyBridge-IBRS
-    - SandyBridge-v1
-    - SandyBridge-v2
-    - Westmere
-    - Westmere-IBRS
-    - Westmere-v1
-    supported_features:
-    - 3dnowprefetch
-    - abm
-    - adx
-    - aes
-    - amd-psfd
-    - amd-ssbd
-    - amd-stibp
-    - apic
-    - arat
-    - arch-capabilities
-    - avx
-    - avx2
-    - avx512-bf16
-    - avx512-vpopcntdq
-    - avx512bitalg
-    - avx512bw
-    - avx512cd
-    - avx512dq
-    - avx512f
-    - avx512ifma
-    - avx512vbmi
-    - avx512vbmi2
-    - avx512vl
-    - avx512vnni
-    - bmi1
-    - bmi2
-    - clflush
-    - clflushopt
-    - clwb
-    - clzero
-    - cmov
-    - cmp_legacy
-    - cr8legacy
-    - cx16
-    - cx8
-    - de
-    - erms
-    - f16c
-    - flushbyasid
-    - fma
-    - fpu
-    - fsgsbase
-    - fsrm
-    - fxsr
-    - fxsr_opt
-    - gds-no
-    - gfni
-    - hypervisor
-    - ibpb
-    - ibrs
-    - invpcid
-    - lahf_lm
-    - lbrv
-    - lfence-always-serializing
-    - lm
-    - mca
-    - mce
-    - mds-no
-    - misalignsse
-    - mmx
-    - mmxext
-    - movbe
-    - msr
-    - mtrr
-    - no-nested-data-bp
-    - npt
-    - nrip-save
-    - null-sel-clr-base
-    - nx
-    - osvw
-    - overflow-recov
-    - pae
-    - pat
-    - pause-filter
-    - pclmuldq
-    - pdpe1gb
-    - perfctr_core
-    - pfthreshold
-    - pge
-    - pku
-    - pni
-    - popcnt
-    - pschange-mc-no
-    - pse
-    - pse36
-    - rdctl-no
-    - rdpid
-    - rdrand
-    - rdseed
-    - rdtscp
-    - rfds-no
-    - sep
-    - sha-ni
-    - skip-l1dfl-vmentry
-    - smap
-    - smep
-    - spec-ctrl
-    - ssbd
-    - sse
-    - sse2
-    - sse4.1
-    - sse4.2
-    - sse4a
-    - ssse3
-    - stibp
-    - stibp-always-on
-    - succor
-    - svm
-    - svme-addr-chk
-    - syscall
-    - tsc
-    - tsc-deadline
-    - tsc-scale
-    - tsc_adjust
-    - umip
-    - vaes
-    - vgif
-    - virt-ssbd
-    - vmcb-clean
-    - vme
-    - vpclmulqdq
-    - wbnoinvd
-    - x2apic
-    - xgetbv1
-    - xsave
-    - xsavec
-    - xsaveerptr
-    - xsaveopt
-    - xsaves
-    virsh_version: |
-      Compiled against library: libvirt 11.0.0
-      Using library: libvirt 11.0.0
-      Using API: QEMU 11.0.0
-  - virt_launcher: 1.4.1-150600.5.21.2
-    host_cpu_model:
-      name: EPYC-Genoa
-      vendor: AMD
-      required_features:
-      - x2apic
-      - tsc-deadline
-      - hypervisor
-      - tsc_adjust
-      - spec-ctrl
-      - stibp
-      - arch-capabilities
-      - ssbd
-      - cmp_legacy
-      - virt-ssbd
-      - lbrv
-      - tsc-scale
-      - vmcb-clean
-      - flushbyasid
-      - pause-filter
-      - pfthreshold
-      - vgif
-      - rdctl-no
-      - skip-l1dfl-vmentry
-      - mds-no
-      - pschange-mc-no
-      - gds-no
-    supported_models:
-    - Westmere-IBRS
-    - Westmere
-    - SandyBridge-IBRS
-    - SandyBridge
-    - Penryn
-    - Opteron_G3
-    - Nehalem-IBRS
-    - Nehalem
-    - IvyBridge-IBRS
-    - IvyBridge
-    - EPYC-Rome
-    - EPYC-IBPB
-    - EPYC
-    supported_features:
-    - 3dnowprefetch
-    - abm
-    - adx
-    - aes
-    - amd-psfd
-    - amd-ssbd
-    - amd-stibp
-    - apic
-    - arat
-    - arch-capabilities
-    - avx
-    - avx2
-    - avx512-bf16
-    - avx512-vpopcntdq
-    - avx512bitalg
-    - avx512bw
-    - avx512cd
-    - avx512dq
-    - avx512f
-    - avx512ifma
-    - avx512vbmi
-    - avx512vbmi2
-    - avx512vl
-    - avx512vnni
-    - bmi1
-    - bmi2
-    - clflush
-    - clflushopt
-    - clwb
-    - clzero
-    - cmov
-    - cmp_legacy
-    - cr8legacy
-    - cx16
-    - cx8
-    - de
-    - erms
-    - f16c
-    - flushbyasid
-    - fma
-    - fpu
-    - fsgsbase
-    - fsrm
-    - fxsr
-    - fxsr_opt
-    - gds-no
-    - gfni
-    - hypervisor
-    - ibpb
-    - ibrs
-    - invpcid
-    - lahf_lm
-    - lbrv
-    - lfence-always-serializing
-    - lm
-    - mca
-    - mce
-    - mds-no
-    - misalignsse
-    - mmx
-    - mmxext
-    - movbe
-    - msr
-    - mtrr
-    - no-nested-data-bp
-    - npt
-    - nrip-save
-    - null-sel-clr-base
-    - nx
-    - osvw
-    - pae
-    - pat
-    - pause-filter
-    - pclmuldq
-    - pdpe1gb
-    - perfctr_core
-    - pfthreshold
-    - pge
-    - pku
-    - pni
-    - popcnt
-    - pschange-mc-no
-    - pse
-    - pse36
-    - rdctl-no
-    - rdpid
-    - rdrand
-    - rdseed
-    - rdtscp
-    - sep
-    - sha-ni
-    - skip-l1dfl-vmentry
-    - smap
-    - smep
-    - spec-ctrl
-    - ssbd
-    - sse
-    - sse2
-    - sse4.1
-    - sse4.2
-    - sse4a
-    - ssse3
-    - stibp
-    - stibp-always-on
-    - svm
-    - svme-addr-chk
-    - syscall
-    - tsc
-    - tsc-deadline
-    - tsc-scale
-    - tsc_adjust
-    - umip
-    - vaes
-    - vgif
-    - virt-ssbd
-    - vmcb-clean
-    - vme
-    - vpclmulqdq
-    - wbnoinvd
-    - x2apic
-    - xgetbv1
-    - xsave
-    - xsavec
-    - xsaveerptr
-    - xsaveopt
-    - xsaves
-    virsh_version: |
-      Compiled against library: libvirt 10.0.0
-      Using library: libvirt 10.0.0
-      Using API: QEMU 10.0.0
+```sh
+kubectl -n kubevirt logs virt-handler-t2qlz -c debugger-1775708476
 ```
 
-</details>
+```sh
++ mkdir -p /var/lib/kubevirt-node-labeller
++ node-labeller.sh
++ KVM_HYPERVISOR_DEVICE=kvm
++ KVM_VIRTTYPE=kvm
++ '[' -z '' ']'
++ echo 'Warning: Env vars HYPERVISOR_DEVICE or PREFERRED_VIRTTYPE not set. Defaulting to KVM values for both vars'
++ echo 'Currently specified values: HYPERVISOR_DEVICE='\'''\'', PREFERRED_VIRTTYPE='\'''\'''
+Warning: Env vars HYPERVISOR_DEVICE or PREFERRED_VIRTTYPE not set. Defaulting to KVM values for both vars
+Currently specified values: HYPERVISOR_DEVICE='', PREFERRED_VIRTTYPE=''
++ HYPERVISOR_DEVICE=kvm
++ PREFERRED_VIRTTYPE=kvm
+++ uname -m
++ ARCH=x86_64
++ MACHINE=q35
++ '[' x86_64 == aarch64 ']'
++ '[' x86_64 == s390x ']'
++ '[' x86_64 '!=' x86_64 ']'
++ set +o pipefail
++ HYPERVISOR_DEV_PATH=/dev/kvm
+++ grep -w kvm /proc/misc
+++ cut -f 1 '-d '
++ HYPERVISOR_DEV_MINOR=232
++ set -o pipefail
++ VIRTTYPE=qemu
++ '[' '!' -e /dev/kvm ']'
++ '[' -e /dev/kvm ']'
++ chmod o+rw /dev/kvm
++ VIRTTYPE=kvm
++ '[' -e /dev/sev ']'
++ virtqemud -d
++ virsh domcapabilities --machine q35 --arch x86_64 --virttype kvm
++ '[' x86_64 == x86_64 ']'
++ virsh domcapabilities --machine q35 --arch x86_64 --virttype kvm
++ virsh hypervisor-cpu-baseline --features /dev/stdin --machine q35 --arch x86_64 --virttype kvm
++ virsh capabilities
++ virsh version
++ touch /var/lib/kubevirt-node-labeller/.done
++ sleep 3600
+```
 
-## CPU Capabilities And KubeVirt Node Labeling
+The ephemeral container has a default TTL of 1 hour. It does not interfere with
+the operation of the primary container and is automatically removed when the
+owner pod is restarted.
+
+### CPU Capabilities And KubeVirt Node Labeling
 
 This section provides a brief description on the mapping between the reported CPU
 capabilities and the node labels managed by the KubeVirt `node-labeller` controller.
@@ -846,76 +664,6 @@ These are features marked with the `require` policy. They are translated to the
 [4]: https://github.com/kubevirt/kubevirt/blob/de16a73f4ea3e48a5c8796d9db508b49960417bb/pkg/virt-handler/node-labeller/node_labeller.go#L251-L253
 [5]: https://github.com/kubevirt/kubevirt/issues/14813
 
-## How It Works
-
-The script starts an ephemeral `virt-launcher` container in each `virt-handler`
-pod to collect the host CPU capabilities information of the node. Essentially, it
-replicates the task performed by the `node-labeller` init container in real time,
-without launching a new pod.
-
-If the optional `-i` argument is specified, the script uses its value as the
-image of the ephemeral container. This allows us to compare the information
-generated by different versions of `virt-launcher`, libvirt and QEMU.
-
-Without the `-i` argument, the ephemeral container uses the same image as the
-`node-labeller` init container.
-
-The container executes the KubeVirt `node-labeller.sh` script<sup>[ref][6]</sup>, writes
-the output XML files to the container's `/var/lib/kubevirt-node-labeller` folder,
-and copies the output from the container to your shell. It operates within the
-security context boundary of its owner `virt-handler` pod.
-
-[6]: https://github.com/kubevirt/kubevirt/blob/de16a73f4ea3e48a5c8796d9db508b49960417bb/cmd/virt-launcher/node-labeller/node-labeller.sh
-
-![virt-handler pod without debug containers](./img/virt-handler-without-debug-containers.excalidraw.png)
-![virt-handler pod with debug containers](./img/virt-handler-with-debug-containers.excalidraw.png)
-
-To check the state of the ephemeral containers in all the `virt-handler` pods:
-
-```sh
-kubectl -n harvester-system get po -lkubevirt.io=virt-handler -ojsonpath='{.items[*].status.ephemeralContainerStatuses}' | jq -r '.[] | select(.name | test("debug-")) | "Name: \(.name), State: \(.state)"'
-```
-
-```sh
-Name: debug-20251203-093008, State: {"running":{"startedAt":"2025-12-03T17:30:08Z"}}
-```
-
-To view their logs:
-
-```sh
-kubectl -n harvester-system logs virt-handler-t2qlz -c debug-20251205-105830
-```
-
-```sh
-++ uname -m
-+ ARCH=x86_64
-+ MACHINE=q35
-+ '[' x86_64 == aarch64 ']'
-+ '[' x86_64 == s390x ']'
-+ '[' x86_64 '!=' x86_64 ']'
-+ set +o pipefail
-++ grep -w kvm /proc/misc
-++ cut -f 1 '-d '
-+ KVM_MINOR=232
-+ set -o pipefail
-+ VIRTTYPE=qemu
-+ '[' '!' -e /dev/kvm ']'
-+ '[' -e /dev/kvm ']'
-+ chmod o+rw /dev/kvm
-+ VIRTTYPE=kvm
-+ '[' -e /dev/sev ']'
-+ virtqemud -d
-+ virsh domcapabilities --machine q35 --arch x86_64 --virttype kvm
-+ '[' x86_64 == x86_64 ']'
-+ virsh domcapabilities --machine q35 --arch x86_64 --virttype kvm
-+ virsh hypervisor-cpu-baseline --features /dev/stdin --machine q35 --arch x86_64 --virttype kvm
-+ virsh capabilities
-```
-
-The ephemeral container has a default TTL of 1 hour. It does not interfere with
-the operation of the primary container and is automatically removed when the
-owner pod is restarted.
-
 ## Development
 
 To build and test the code:
@@ -934,12 +682,10 @@ To re-generate the Rust structs in the `src/de/types` module:
 make xml_to_rs
 ```
 
-## ToDo
-
-* Account for known CPU models list
-
 ## LICENSE
 
 Apache License Version 2.0.
 
 See [LICENSE](LICENSE).
+
+[0]: https://kind.sigs.k8s.io/
